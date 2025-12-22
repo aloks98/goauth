@@ -1,0 +1,45 @@
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Coverage
+coverage.out
+coverage.html
+*.coverprofile
+
+# Build
+bin/
+dist/
+
+# Dependencies
+vendor/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test databases
+*.db
+*.sqlite
+
+# Credentials (never commit)
+*.pem
+*.key
+credentials.json
