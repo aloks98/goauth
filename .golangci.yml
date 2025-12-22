@@ -18,7 +18,7 @@ linters:
     - noctx
     - gosec
     - prealloc
-    - exportloopref
+    - copyloopvar
     - whitespace
     - revive
 
@@ -51,6 +51,7 @@ linters-settings:
       - name: errorf
   gosec:
     excludes:
+      - G101 # False positives on error code constants
       - G104 # Audit errors not checked (we handle this case-by-case)
 
 issues:

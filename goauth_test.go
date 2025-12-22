@@ -123,7 +123,7 @@ func TestAuth_Config(t *testing.T) {
 
 	cfg := auth.Config()
 	if cfg == nil {
-		t.Error("Config() should not return nil")
+		t.Fatal("Config() should not return nil")
 	}
 	if cfg.Secret != "this-is-a-32-character-secret!!!" {
 		t.Error("Config() should return the configured secret")
