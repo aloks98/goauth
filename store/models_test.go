@@ -64,9 +64,9 @@ func TestRefreshToken_IsExpired(t *testing.T) {
 func TestRefreshToken_IsValid(t *testing.T) {
 	now := time.Now()
 	tests := []struct {
-		name      string
-		token     *RefreshToken
-		expected  bool
+		name     string
+		token    *RefreshToken
+		expected bool
 	}{
 		{
 			name: "valid token",
@@ -407,9 +407,9 @@ func TestMatchPermission(t *testing.T) {
 
 func TestSplitPermission(t *testing.T) {
 	tests := []struct {
-		perm           string
-		wantResource   string
-		wantAction     string
+		perm         string
+		wantResource string
+		wantAction   string
 	}{
 		{"monitors:read", "monitors", "read"},
 		{"monitors:write", "monitors", "write"},
