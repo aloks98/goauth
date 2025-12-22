@@ -84,7 +84,9 @@ func TestGenerateRandomHex(t *testing.T) {
 
 	// Should only contain hex characters
 	for _, c := range s {
-		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
+		isDigit := c >= '0' && c <= '9'
+		isHexLower := c >= 'a' && c <= 'f'
+		if !isDigit && !isHexLower {
 			t.Errorf("invalid hex character: %c", c)
 		}
 	}

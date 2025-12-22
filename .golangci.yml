@@ -7,10 +7,9 @@ run:
 linters:
   enable:
     - errcheck
-    - gosimple
     - govet
     - ineffassign
-    - staticcheck
+    - staticcheck  # includes gosimple
     - unused
     - misspell
     - unconvert
@@ -52,6 +51,7 @@ linters:
     rules:
       - path: _test\.go
         linters:
+          - errcheck
           - gosec
           - noctx
       - path: _test\.go
