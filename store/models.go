@@ -166,6 +166,9 @@ type StoredRoleTemplate struct {
 	// Permissions is the list of permission keys.
 	Permissions []string `db:"permissions" json:"permissions"`
 
+	// PermissionHash is a hash of the sorted permissions for change detection.
+	PermissionHash string `db:"permission_hash" json:"permission_hash"`
+
 	// Version is incremented when the template changes.
 	Version int `db:"version" json:"version"`
 
