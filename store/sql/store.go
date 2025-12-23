@@ -19,7 +19,7 @@ type Store struct {
 
 // Config holds SQL store configuration.
 type Config struct {
-	// Dialect specifies the database type (postgres, mysql, sqlite).
+	// Dialect specifies the database type (postgres, mysql).
 	Dialect Dialect
 
 	// DB is an existing database connection.
@@ -28,6 +28,11 @@ type Config struct {
 
 	// DSN is the data source name for connecting to the database.
 	DSN string
+
+	// TablePrefix is the prefix for all table names.
+	// Defaults to "goauth_" if empty.
+	// Example: "myapp_" creates tables like "myapp_refresh_tokens".
+	TablePrefix string
 
 	// MaxOpenConns sets the maximum number of open connections.
 	MaxOpenConns int
@@ -64,10 +69,15 @@ func New(cfg *Config) (*Store, error) {
 		}
 	}
 
+	tablePrefix := cfg.TablePrefix
+	if tablePrefix == "" {
+		tablePrefix = "goauth_"
+	}
+
 	return &Store{
 		db:      db,
 		dialect: cfg.Dialect,
-		queries: getDialectQueries(cfg.Dialect),
+		queries: getDialectQueries(cfg.Dialect, tablePrefix),
 	}, nil
 }
 

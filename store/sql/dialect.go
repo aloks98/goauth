@@ -2,6 +2,8 @@
 package sql
 
 import (
+	"strings"
+
 	"github.com/aloks98/goauth/store/sql/queries"
 )
 
@@ -54,13 +56,62 @@ type dialectQueries struct {
 	placeholder func(int) string
 }
 
-// getDialectQueries returns the queries for a specific dialect.
-func getDialectQueries(d Dialect) *dialectQueries {
+// Default table prefix used in SQL files.
+const defaultTablePrefix = "goauth_"
+
+// getDialectQueries returns the queries for a specific dialect with the given table prefix.
+func getDialectQueries(d Dialect, tablePrefix string) *dialectQueries {
+	var dq *dialectQueries
 	switch d {
 	case MySQL:
-		return getMySQLQueries()
+		dq = getMySQLQueries()
 	default:
-		return getPostgreSQLQueries()
+		dq = getPostgreSQLQueries()
+	}
+
+	// Apply custom table prefix if different from default
+	if tablePrefix != defaultTablePrefix {
+		dq = applyTablePrefix(dq, tablePrefix)
+	}
+
+	return dq
+}
+
+// applyTablePrefix replaces the default table prefix with a custom one in all queries.
+func applyTablePrefix(dq *dialectQueries, prefix string) *dialectQueries {
+	replace := func(s string) string {
+		return strings.ReplaceAll(s, defaultTablePrefix, prefix)
+	}
+
+	return &dialectQueries{
+		placeholder: dq.placeholder,
+
+		schema: replace(dq.schema),
+
+		insertRefreshToken:         replace(dq.insertRefreshToken),
+		selectRefreshToken:         replace(dq.selectRefreshToken),
+		revokeRefreshToken:         replace(dq.revokeRefreshToken),
+		revokeTokenFamily:          replace(dq.revokeTokenFamily),
+		revokeAllUserRefreshTokens: replace(dq.revokeAllUserRefreshTokens),
+		deleteExpiredRefreshTokens: replace(dq.deleteExpiredRefreshTokens),
+
+		insertBlacklist:               replace(dq.insertBlacklist),
+		selectBlacklist:               replace(dq.selectBlacklist),
+		deleteExpiredBlacklistEntries: replace(dq.deleteExpiredBlacklistEntries),
+
+		selectUserPermissions: replace(dq.selectUserPermissions),
+		upsertUserPermissions: replace(dq.upsertUserPermissions),
+		deleteUserPermissions: replace(dq.deleteUserPermissions),
+		updateUsersWithRole:   replace(dq.updateUsersWithRole),
+
+		selectRoleTemplates: replace(dq.selectRoleTemplates),
+		upsertRoleTemplate:  replace(dq.upsertRoleTemplate),
+
+		insertAPIKey:         replace(dq.insertAPIKey),
+		selectAPIKeyByHash:   replace(dq.selectAPIKeyByHash),
+		selectAPIKeysByUser:  replace(dq.selectAPIKeysByUser),
+		revokeAPIKey:         replace(dq.revokeAPIKey),
+		deleteExpiredAPIKeys: replace(dq.deleteExpiredAPIKeys),
 	}
 }
 

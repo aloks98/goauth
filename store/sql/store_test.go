@@ -36,7 +36,7 @@ func TestGetDriverName(t *testing.T) {
 
 func TestGetDialectQueries(t *testing.T) {
 	// Test that queries are returned for each dialect
-	pgQueries := getDialectQueries(PostgreSQL)
+	pgQueries := getDialectQueries(PostgreSQL, "goauth_")
 	if pgQueries == nil {
 		t.Fatal("getDialectQueries(PostgreSQL) returned nil")
 	}
@@ -44,7 +44,7 @@ func TestGetDialectQueries(t *testing.T) {
 		t.Errorf("PostgreSQL placeholder(1) = %q, want $1", pgQueries.placeholder(1))
 	}
 
-	mysqlQueries := getDialectQueries(MySQL)
+	mysqlQueries := getDialectQueries(MySQL, "goauth_")
 	if mysqlQueries == nil {
 		t.Fatal("getDialectQueries(MySQL) returned nil")
 	}
@@ -53,13 +53,47 @@ func TestGetDialectQueries(t *testing.T) {
 	}
 
 	// Unknown dialect defaults to PostgreSQL
-	unknownQueries := getDialectQueries(Dialect("unknown"))
+	unknownQueries := getDialectQueries(Dialect("unknown"), "goauth_")
 	if unknownQueries == nil {
 		t.Fatal("getDialectQueries(unknown) returned nil")
 	}
 	if unknownQueries.placeholder(1) != "$1" {
 		t.Errorf("unknown dialect placeholder(1) = %q, want $1", unknownQueries.placeholder(1))
 	}
+}
+
+func TestGetDialectQueries_CustomPrefix(t *testing.T) {
+	// Test that custom table prefix is applied
+	queries := getDialectQueries(PostgreSQL, "myapp_")
+	if queries == nil {
+		t.Fatal("getDialectQueries with custom prefix returned nil")
+	}
+
+	// Schema should have custom prefix
+	if !contains(queries.schema, "myapp_refresh_tokens") {
+		t.Error("schema should contain myapp_refresh_tokens")
+	}
+	if contains(queries.schema, "goauth_refresh_tokens") {
+		t.Error("schema should not contain goauth_refresh_tokens with custom prefix")
+	}
+
+	// Queries should have custom prefix
+	if !contains(queries.insertRefreshToken, "myapp_refresh_tokens") {
+		t.Error("insertRefreshToken should contain myapp_refresh_tokens")
+	}
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsHelper(s, substr))
+}
+
+func containsHelper(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
 }
 
 func TestItoa(t *testing.T) {
