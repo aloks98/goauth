@@ -1,6 +1,10 @@
 // Package sql provides SQL database storage for goauth.
 package sql
 
+import (
+	"github.com/aloks98/goauth/store/sql/queries"
+)
+
 // Dialect represents a SQL database dialect.
 type Dialect string
 
@@ -13,12 +17,8 @@ const (
 
 // dialectQueries contains SQL queries for each dialect.
 type dialectQueries struct {
-	// Schema creation
-	createRefreshTokensTable   string
-	createBlacklistTable       string
-	createUserPermissionsTable string
-	createRoleTemplatesTable   string
-	createAPIKeysTable         string
+	// Schema creation (combined into single string for migration)
+	schema string
 
 	// Refresh tokens
 	insertRefreshToken         string
@@ -61,6 +61,82 @@ func getDialectQueries(d Dialect) *dialectQueries {
 		return getMySQLQueries()
 	default:
 		return getPostgreSQLQueries()
+	}
+}
+
+func getPostgreSQLQueries() *dialectQueries {
+	q, err := queries.LoadPostgres()
+	if err != nil {
+		panic("failed to load postgres queries: " + err.Error())
+	}
+
+	return &dialectQueries{
+		placeholder: postgresPlaceholder,
+
+		schema: q.Schema,
+
+		insertRefreshToken:         q.InsertRefreshToken,
+		selectRefreshToken:         q.SelectRefreshToken,
+		revokeRefreshToken:         q.RevokeRefreshToken,
+		revokeTokenFamily:          q.RevokeTokenFamily,
+		revokeAllUserRefreshTokens: q.RevokeAllUserTokens,
+		deleteExpiredRefreshTokens: q.DeleteExpiredTokens,
+
+		insertBlacklist:               q.InsertBlacklist,
+		selectBlacklist:               q.SelectBlacklist,
+		deleteExpiredBlacklistEntries: q.DeleteExpiredBlacklist,
+
+		selectUserPermissions: q.SelectUserPerms,
+		upsertUserPermissions: q.UpsertUserPerms,
+		deleteUserPermissions: q.DeleteUserPerms,
+		updateUsersWithRole:   q.UpdateUsersWithRole,
+
+		selectRoleTemplates: q.SelectRoleTemplates,
+		upsertRoleTemplate:  q.UpsertRoleTemplate,
+
+		insertAPIKey:         q.InsertAPIKey,
+		selectAPIKeyByHash:   q.SelectAPIKeyByHash,
+		selectAPIKeysByUser:  q.SelectAPIKeysByUser,
+		revokeAPIKey:         q.RevokeAPIKey,
+		deleteExpiredAPIKeys: q.DeleteExpiredAPIKeys,
+	}
+}
+
+func getMySQLQueries() *dialectQueries {
+	q, err := queries.LoadMySQL()
+	if err != nil {
+		panic("failed to load mysql queries: " + err.Error())
+	}
+
+	return &dialectQueries{
+		placeholder: mysqlPlaceholder,
+
+		schema: q.Schema,
+
+		insertRefreshToken:         q.InsertRefreshToken,
+		selectRefreshToken:         q.SelectRefreshToken,
+		revokeRefreshToken:         q.RevokeRefreshToken,
+		revokeTokenFamily:          q.RevokeTokenFamily,
+		revokeAllUserRefreshTokens: q.RevokeAllUserTokens,
+		deleteExpiredRefreshTokens: q.DeleteExpiredTokens,
+
+		insertBlacklist:               q.InsertBlacklist,
+		selectBlacklist:               q.SelectBlacklist,
+		deleteExpiredBlacklistEntries: q.DeleteExpiredBlacklist,
+
+		selectUserPermissions: q.SelectUserPerms,
+		upsertUserPermissions: q.UpsertUserPerms,
+		deleteUserPermissions: q.DeleteUserPerms,
+		updateUsersWithRole:   q.UpdateUsersWithRole,
+
+		selectRoleTemplates: q.SelectRoleTemplates,
+		upsertRoleTemplate:  q.UpsertRoleTemplate,
+
+		insertAPIKey:         q.InsertAPIKey,
+		selectAPIKeyByHash:   q.SelectAPIKeyByHash,
+		selectAPIKeysByUser:  q.SelectAPIKeysByUser,
+		revokeAPIKey:         q.RevokeAPIKey,
+		deleteExpiredAPIKeys: q.DeleteExpiredAPIKeys,
 	}
 }
 

@@ -93,25 +93,15 @@ func (s *Store) Ping(ctx context.Context) error {
 
 // Migrate creates the database schema.
 func (s *Store) Migrate(ctx context.Context) error {
-	tables := []string{
-		s.queries.createRefreshTokensTable,
-		s.queries.createBlacklistTable,
-		s.queries.createUserPermissionsTable,
-		s.queries.createRoleTemplatesTable,
-		s.queries.createAPIKeysTable,
-	}
-
-	for _, table := range tables {
-		// Split by semicolon for multiple statements
-		statements := strings.Split(table, ";")
-		for _, stmt := range statements {
-			stmt = strings.TrimSpace(stmt)
-			if stmt == "" {
-				continue
-			}
-			if _, err := s.db.ExecContext(ctx, stmt); err != nil {
-				return err
-			}
+	// Split schema by semicolon for multiple statements
+	statements := strings.Split(s.queries.schema, ";")
+	for _, stmt := range statements {
+		stmt = strings.TrimSpace(stmt)
+		if stmt == "" {
+			continue
+		}
+		if _, err := s.db.ExecContext(ctx, stmt); err != nil {
+			return err
 		}
 	}
 
