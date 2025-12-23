@@ -19,9 +19,9 @@ type Worker struct {
 	wg       sync.WaitGroup
 
 	// Cleanup task toggles
-	cleanRefreshTokens  bool
-	cleanBlacklist      bool
-	cleanAPIKeys        bool
+	cleanRefreshTokens bool
+	cleanBlacklist     bool
+	cleanAPIKeys       bool
 
 	// Stats
 	mu                   sync.RWMutex

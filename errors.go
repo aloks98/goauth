@@ -3,6 +3,10 @@ package goauth
 import (
 	"errors"
 	"fmt"
+
+	"github.com/aloks98/goauth/apikey"
+	"github.com/aloks98/goauth/rbac"
+	"github.com/aloks98/goauth/token"
 )
 
 // Error codes for categorizing errors.
@@ -20,8 +24,6 @@ const (
 	CodeAPIKeyInvalid          = "API_KEY_INVALID"
 	CodeAPIKeyExpired          = "API_KEY_EXPIRED"
 	CodeAPIKeyRevoked          = "API_KEY_REVOKED"
-	CodePasswordTooWeak        = "PASSWORD_TOO_WEAK"
-	CodePasswordMismatch       = "PASSWORD_MISMATCH"
 	CodeRateLimitExceeded      = "RATE_LIMIT_EXCEEDED"
 	CodeStoreRequired          = "STORE_REQUIRED"
 	CodeStoreUnavailable       = "STORE_UNAVAILABLE"
@@ -38,30 +40,37 @@ const (
 	CodeRBACNotEnabled         = "RBAC_NOT_ENABLED"
 )
 
-// Sentinel errors for use with errors.Is().
+// Re-exported errors from sub-packages.
+// These allow users to use goauth.ErrXxx without importing sub-packages.
 var (
-	// Token errors
-	ErrTokenExpired       = errors.New("token has expired")
-	ErrTokenNotYetValid   = errors.New("token is not yet valid")
-	ErrTokenMalformed     = errors.New("token is malformed")
-	ErrTokenInvalidSig    = errors.New("token signature is invalid")
-	ErrTokenBlacklisted   = errors.New("token has been revoked")
-	ErrPermissionsChanged = errors.New("user permissions have changed, please refresh token")
+	// Token errors (from token package)
+	ErrTokenExpired       = token.ErrTokenExpired
+	ErrTokenNotYetValid   = token.ErrTokenNotYetValid
+	ErrTokenMalformed     = token.ErrTokenMalformed
+	ErrTokenInvalidSig    = token.ErrTokenInvalidSig
+	ErrTokenBlacklisted   = token.ErrTokenBlacklisted
+	ErrPermissionsChanged = token.ErrPermissionsChanged
 
-	// Refresh token errors
-	ErrRefreshTokenReused  = errors.New("refresh token has already been used (possible token theft)")
-	ErrRefreshTokenExpired = errors.New("refresh token has expired")
-	ErrRefreshTokenInvalid = errors.New("refresh token is invalid")
-	ErrTokenFamilyRevoked  = errors.New("token family has been revoked")
+	// Refresh token errors (from token package)
+	ErrRefreshTokenReused  = token.ErrRefreshTokenReused
+	ErrRefreshTokenExpired = token.ErrRefreshTokenExpired
+	ErrRefreshTokenInvalid = token.ErrRefreshTokenInvalid
+	ErrTokenFamilyRevoked  = token.ErrTokenFamilyRevoked
 
-	// API key errors
-	ErrAPIKeyInvalid = errors.New("API key is invalid")
-	ErrAPIKeyExpired = errors.New("API key has expired")
-	ErrAPIKeyRevoked = errors.New("API key has been revoked")
+	// API key errors (from apikey package)
+	ErrAPIKeyInvalid = apikey.ErrKeyInvalid
+	ErrAPIKeyExpired = apikey.ErrKeyExpired
+	ErrAPIKeyRevoked = apikey.ErrKeyRevoked
 
-	// Password errors
-	ErrPasswordTooWeak  = errors.New("password does not meet strength requirements")
-	ErrPasswordMismatch = errors.New("password does not match")
+	// RBAC errors (from rbac package)
+	ErrRBACNotEnabled          = rbac.ErrRBACNotEnabled
+	ErrPermissionDenied        = rbac.ErrPermissionDenied
+	ErrUserPermissionsNotFound = rbac.ErrUserPermissionsNotFound
+	ErrDuplicatePermission     = rbac.ErrDuplicatePermission
+	ErrDuplicateRole           = rbac.ErrDuplicateRole
+	ErrRolePermissionNotFound  = rbac.ErrRolePermissionNotFound
+	ErrEmptyPermissionKey      = rbac.ErrEmptyPermissionKey
+	ErrInvalidPermissionFormat = rbac.ErrInvalidPermissionFormat
 
 	// Rate limit errors
 	ErrRateLimitExceeded = errors.New("rate limit exceeded")
@@ -74,18 +83,6 @@ var (
 	// Config errors
 	ErrConfigInvalid            = errors.New("configuration is invalid")
 	ErrConfigVersionUnsupported = errors.New("configuration version is not supported")
-	ErrDuplicatePermission      = errors.New("duplicate permission key")
-	ErrDuplicateRole            = errors.New("duplicate role key")
-	ErrRolePermissionNotFound   = errors.New("role references undefined permission")
-	ErrEmptyPermissionKey       = errors.New("permission key cannot be empty")
-	ErrInvalidPermissionFormat  = errors.New("invalid permission format")
-
-	// Permission errors
-	ErrPermissionDenied        = errors.New("permission denied")
-	ErrUserPermissionsNotFound = errors.New("user permissions not found")
-
-	// RBAC mode errors
-	ErrRBACNotEnabled = errors.New("RBAC is not enabled")
 )
 
 // AuthError is a structured error type that includes an error code and optional wrapped error.

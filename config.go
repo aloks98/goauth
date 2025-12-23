@@ -3,6 +3,24 @@ package goauth
 import (
 	"fmt"
 	"time"
+
+	"github.com/aloks98/goauth/rbac"
+)
+
+// Re-export RBAC types for convenience.
+// Users can use goauth.RBACConfig instead of rbac.Config.
+type (
+	// RBACConfig defines the role-based access control configuration.
+	RBACConfig = rbac.Config
+
+	// PermissionGroup groups related permissions together.
+	PermissionGroup = rbac.PermissionGroup
+
+	// Permission defines a single permission.
+	Permission = rbac.Permission
+
+	// RoleTemplate defines a role template with a set of permissions.
+	RoleTemplate = rbac.RoleTemplate
 )
 
 // SigningMethod represents the JWT signing algorithm.
@@ -96,35 +114,6 @@ type Config struct {
 
 	// RBACConfigData is raw RBAC configuration data (alternative to file path).
 	RBACConfigData []byte
-}
-
-// RBACConfig defines the role-based access control configuration.
-type RBACConfig struct {
-	Version          int               `json:"version" yaml:"version"`
-	PermissionGroups []PermissionGroup `json:"permission_groups" yaml:"permission_groups"`
-	RoleTemplates    []RoleTemplate    `json:"role_templates" yaml:"role_templates"`
-}
-
-// PermissionGroup groups related permissions together.
-type PermissionGroup struct {
-	Name        string       `json:"name" yaml:"name"`
-	Description string       `json:"description,omitempty" yaml:"description,omitempty"`
-	Permissions []Permission `json:"permissions" yaml:"permissions"`
-}
-
-// Permission defines a single permission.
-type Permission struct {
-	Key         string `json:"key" yaml:"key"`
-	Name        string `json:"name" yaml:"name"`
-	Description string `json:"description,omitempty" yaml:"description,omitempty"`
-}
-
-// RoleTemplate defines a role template with a set of permissions.
-type RoleTemplate struct {
-	Key         string   `json:"key" yaml:"key"`
-	Name        string   `json:"name" yaml:"name"`
-	Description string   `json:"description,omitempty" yaml:"description,omitempty"`
-	Permissions []string `json:"permissions" yaml:"permissions"`
 }
 
 // RateLimitConfig defines rate limiting configuration.

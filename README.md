@@ -30,14 +30,14 @@ A stateful, pluggable authentication and authorization library for Go applicatio
 
 ### Implementation Phases
 
-- [phase-1-foundation.md](./.claude/plans/phase-1-foundation.md) - Core setup and interfaces
-- [phase-2-token-service.md](./.claude/plans/phase-2-token-service.md) - JWT and refresh tokens
-- [phase-3-password-apikey.md](./.claude/plans/phase-3-password-apikey.md) - Password hashing and API keys
-- [phase-4-rbac.md](./.claude/plans/phase-4-rbac.md) - RBAC system
-- [phase-5-store.md](./.claude/plans/phase-5-store.md) - Store implementations
-- [phase-6-middleware.md](./.claude/plans/phase-6-middleware.md) - Framework middleware
-- [phase-7-extras.md](./.claude/plans/phase-7-extras.md) - Rate limiting and cleanup
-- [phase-8-testing-docs.md](./.claude/plans/phase-8-testing-docs.md) - Testing and documentation
+- [phase-1-foundation.md](plans/phase-1-foundation.md) - Core setup and interfaces
+- [phase-2-token-service.md](plans/phase-2-token-service.md) - JWT and refresh tokens
+- [phase-3-password-apikey.md](plans/phase-3-password-apikey.md) - Password hashing and API keys
+- [phase-4-rbac.md](plans/phase-4-rbac.md) - RBAC system
+- [phase-5-store.md](plans/phase-5-store.md) - Store implementations
+- [phase-6-middleware.md](plans/phase-6-middleware.md) - Framework middleware
+- [phase-7-extras.md](plans/phase-7-extras.md) - Rate limiting and cleanup
+- [phase-8-testing-docs.md](plans/phase-8-testing-docs.md) - Testing and documentation
 
 ### Testing
 

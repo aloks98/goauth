@@ -15,27 +15,27 @@ var MySQLFS embed.FS
 
 // Queries holds parsed SQL queries by name.
 type Queries struct {
-	Schema               string
-	InsertRefreshToken   string
-	SelectRefreshToken   string
-	RevokeRefreshToken   string
-	RevokeTokenFamily    string
-	RevokeAllUserTokens  string
-	DeleteExpiredTokens  string
-	InsertBlacklist      string
-	SelectBlacklist      string
+	Schema                 string
+	InsertRefreshToken     string
+	SelectRefreshToken     string
+	RevokeRefreshToken     string
+	RevokeTokenFamily      string
+	RevokeAllUserTokens    string
+	DeleteExpiredTokens    string
+	InsertBlacklist        string
+	SelectBlacklist        string
 	DeleteExpiredBlacklist string
-	SelectUserPerms      string
-	UpsertUserPerms      string
-	DeleteUserPerms      string
-	UpdateUsersWithRole  string
-	SelectRoleTemplates  string
-	UpsertRoleTemplate   string
-	InsertAPIKey         string
-	SelectAPIKeyByHash   string
-	SelectAPIKeysByUser  string
-	RevokeAPIKey         string
-	DeleteExpiredAPIKeys string
+	SelectUserPerms        string
+	UpsertUserPerms        string
+	DeleteUserPerms        string
+	UpdateUsersWithRole    string
+	SelectRoleTemplates    string
+	UpsertRoleTemplate     string
+	InsertAPIKey           string
+	SelectAPIKeyByHash     string
+	SelectAPIKeysByUser    string
+	RevokeAPIKey           string
+	DeleteExpiredAPIKeys   string
 }
 
 // LoadPostgres loads PostgreSQL queries from embedded files.

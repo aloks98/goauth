@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-GoAuth is a stateful authentication and authorization library for Go. It provides JWT tokens, refresh token rotation, password hashing, API keys, and user-level RBAC.
+GoAuth is a stateful authentication and authorization library for Go. It provides JWT tokens, refresh token rotation, API keys, and user-level RBAC.
 
 ## Key Architecture Decisions
 
@@ -25,7 +25,6 @@ auth, _ := goauth.New[Claims](
 )
 ```
 - JWT + refresh tokens ✅
-- Password hashing ✅
 - API keys ✅
 - `Authenticate()` middleware ✅
 - `RequirePermission()` ❌ (returns ErrRBACNotEnabled)
@@ -54,13 +53,11 @@ goauth/
 ├── errors.go           # All error types
 ├── options.go          # Functional options (With*)
 ├── token/              # JWT and refresh tokens
-├── password/           # Argon2id, Bcrypt hashers
 ├── apikey/             # API key management
 ├── rbac/               # Permissions, roles, sync
 ├── store/              # Database adapters
 │   ├── memory/         # For testing
-│   ├── redis/
-│   └── sql/            # Postgres, MySQL, SQLite
+│   └── sql/            # Postgres, MySQL
 ├── middleware/         # HTTP framework adapters
 ├── ratelimit/          # Optional rate limiting
 ├── cleanup/            # Background workers
@@ -150,7 +147,7 @@ golangci-lint run
 
 **Required:**
 - `github.com/golang-jwt/jwt/v5` - JWT handling
-- `golang.org/x/crypto` - Argon2, bcrypt
+- `golang.org/x/crypto` - cryptographic utilities
 - Database drivers as needed
 
 **Optional (for specific stores/middleware):**
@@ -158,16 +155,15 @@ golangci-lint run
 - `github.com/labstack/echo/v4`
 - `github.com/gin-gonic/gin`
 - `github.com/go-chi/chi/v5`
-- `github.com/redis/go-redis/v9`
 - `github.com/jackc/pgx/v5`
 
 ## Implementation Order
 
 1. **Phase 1**: Foundation (errors, config, interfaces)
 2. **Phase 2**: Token service (JWT, refresh, blacklist)
-3. **Phase 3**: Password & API keys
+3. **Phase 3**: API keys
 4. **Phase 4**: RBAC (config, permissions, sync)
-5. **Phase 5**: Stores (memory, SQL, Redis)
+5. **Phase 5**: Stores (memory, SQL)
 6. **Phase 6**: Middleware adapters
 7. **Phase 7**: Rate limiting, cleanup
 8. **Phase 8**: Testing, docs, examples

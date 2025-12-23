@@ -16,9 +16,9 @@
 **Estimated Hours:** 1
 
 **Acceptance Criteria:**
-- [ ] `Limiter` interface with `Allow()` and `Reset()` methods
-- [ ] Rate limit result struct
-- [ ] Key extraction helpers
+- [x] `Limiter` interface with `Allow()` and `Reset()` methods
+- [x] Rate limit result struct
+- [x] Key extraction helpers
 
 **Implementation:**
 ```go
@@ -49,16 +49,16 @@ type Rule struct {
 **Estimated Hours:** 4
 
 **Acceptance Criteria:**
-- [ ] Sliding window algorithm
-- [ ] Uses store for persistence
-- [ ] Accurate rate limiting
-- [ ] Returns remaining count
+- [x] Sliding window algorithm
+- [x] Uses store for persistence
+- [x] Accurate rate limiting
+- [x] Returns remaining count
 
 **Testing:**
-- [ ] Unit test: Allows requests within limit
-- [ ] Unit test: Blocks requests over limit
-- [ ] Unit test: Window slides correctly
-- [ ] Unit test: Reset clears limit
+- [x] Unit test: Allows requests within limit
+- [x] Unit test: Blocks requests over limit
+- [x] Unit test: Window slides correctly
+- [x] Unit test: Reset clears limit
 
 ---
 
@@ -69,9 +69,9 @@ type Rule struct {
 **Estimated Hours:** 2
 
 **Acceptance Criteria:**
-- [ ] Config struct for different endpoints
-- [ ] Key extraction strategies
-- [ ] Default rules
+- [x] Config struct for different endpoints
+- [x] Key extraction strategies
+- [x] Default rules
 
 **Implementation:**
 ```go
@@ -101,10 +101,10 @@ const (
 **Estimated Hours:** 3
 
 **Acceptance Criteria:**
-- [ ] Periodic cleanup of expired tokens
-- [ ] Configurable interval
-- [ ] Graceful shutdown
-- [ ] Logging of cleanup stats
+- [x] Periodic cleanup of expired tokens
+- [x] Configurable interval
+- [x] Graceful shutdown
+- [x] Logging of cleanup stats
 
 **Implementation:**
 ```go
@@ -121,16 +121,24 @@ func (w *Worker) Stop()
 ```
 
 **Testing:**
-- [ ] Unit test: Worker starts and stops
-- [ ] Unit test: Cleanup runs at interval
+- [x] Unit test: Worker starts and stops
+- [x] Unit test: Cleanup runs at interval
 - [ ] Integration test: Expired tokens removed
+
+---
+
+## Remaining Work
+
+> **STATUS: ~90% Complete** - Rate limiting and cleanup workers are implemented. Only need integration tests.
+
+- [ ] Integration tests for cleanup with real stores
 
 ---
 
 ## Phase 7 Checklist
 
-- [ ] Rate limiter interface defined
-- [ ] Sliding window implemented
-- [ ] Rate limit config implemented
-- [ ] Cleanup worker implemented
-- [ ] All tests pass
+- [x] Rate limiter interface defined
+- [x] Sliding window implemented
+- [x] Rate limit config implemented
+- [x] Cleanup worker implemented
+- [x] All tests pass

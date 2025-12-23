@@ -16,13 +16,13 @@
 **Estimated Hours:** 4
 
 **Acceptance Criteria:**
-- [ ] Token extraction from header/query/cookie
-- [ ] JWT validation delegation to token service
-- [ ] Blacklist checking
-- [ ] Permission version checking
-- [ ] Claims context injection
-- [ ] Error response formatting
-- [ ] Configurable behavior
+- [x] Token extraction from header/query/cookie
+- [x] JWT validation delegation to token service
+- [x] Blacklist checking
+- [x] Permission version checking
+- [x] Claims context injection
+- [x] Error response formatting
+- [x] Configurable behavior
 
 **Implementation:**
 ```go
@@ -53,11 +53,11 @@ func (c *Core) ShouldSkip(path string) bool
 ```
 
 **Testing:**
-- [ ] Unit test: Token extraction from header
-- [ ] Unit test: Token extraction from query
-- [ ] Unit test: Token extraction from cookie
-- [ ] Unit test: Path skipping works
-- [ ] Unit test: Permission checking delegates correctly
+- [x] Unit test: Token extraction from header
+- [x] Unit test: Token extraction from query
+- [x] Unit test: Token extraction from cookie
+- [x] Unit test: Path skipping works
+- [x] Unit test: Permission checking delegates correctly
 
 ---
 
@@ -68,10 +68,10 @@ func (c *Core) ShouldSkip(path string) bool
 **Estimated Hours:** 2
 
 **Acceptance Criteria:**
-- [ ] Context key for claims storage
-- [ ] Generic `ClaimsFromContext[T]()` function
-- [ ] Safe nil handling
-- [ ] Framework-specific adapters
+- [x] Context key for claims storage
+- [x] Generic `ClaimsFromContext[T]()` function
+- [x] Safe nil handling
+- [x] Framework-specific adapters
 
 **Implementation:**
 ```go
@@ -84,9 +84,9 @@ func ClaimsFromContext[T Claims](ctx context.Context) *T
 ```
 
 **Testing:**
-- [ ] Unit test: Claims stored and retrieved correctly
-- [ ] Unit test: Missing claims returns nil
-- [ ] Unit test: Type assertion works
+- [x] Unit test: Claims stored and retrieved correctly
+- [x] Unit test: Missing claims returns nil
+- [x] Unit test: Type assertion works
 
 ---
 
@@ -97,13 +97,13 @@ func ClaimsFromContext[T Claims](ctx context.Context) *T
 **Estimated Hours:** 3
 
 **Acceptance Criteria:**
-- [ ] `Authenticate()` middleware function
-- [ ] `RequirePermission()` middleware
-- [ ] `RequirePermissions()` middleware
-- [ ] `RequireAnyPermission()` middleware
-- [ ] `AuthenticateAPIKey()` middleware
-- [ ] `Optional()` middleware
-- [ ] Standard error responses
+- [x] `Authenticate()` middleware function
+- [x] `RequirePermission()` middleware
+- [x] `RequirePermissions()` middleware
+- [x] `RequireAnyPermission()` middleware
+- [x] `AuthenticateAPIKey()` middleware
+- [x] `Optional()` middleware
+- [x] Standard error responses
 
 **Implementation:**
 ```go
@@ -122,10 +122,10 @@ func (m *HTTPMiddleware) Optional(next http.Handler) http.Handler
 ```
 
 **Testing:**
-- [ ] Unit test: Authenticate passes valid token
-- [ ] Unit test: Authenticate rejects invalid token
-- [ ] Unit test: RequirePermission checks permission
-- [ ] Unit test: Optional allows missing token
+- [x] Unit test: Authenticate passes valid token
+- [x] Unit test: Authenticate rejects invalid token
+- [x] Unit test: RequirePermission checks permission
+- [x] Unit test: Optional allows missing token
 - [ ] Integration test: Full HTTP flow
 
 ---
@@ -137,10 +137,10 @@ func (m *HTTPMiddleware) Optional(next http.Handler) http.Handler
 **Estimated Hours:** 3
 
 **Acceptance Criteria:**
-- [ ] Same functionality as HTTP middleware
-- [ ] Uses Fiber context
-- [ ] Fiber-style handler signature
-- [ ] Helper: `ClaimsFromFiber[T](c *fiber.Ctx)`
+- [x] Same functionality as HTTP middleware
+- [x] Uses Fiber context
+- [x] Fiber-style handler signature
+- [x] Helper: `ClaimsFromFiber[T](c *fiber.Ctx)`
 
 **Implementation:**
 ```go
@@ -161,7 +161,7 @@ func ClaimsFromFiber[T Claims](c *fiber.Ctx) *T
 ```
 
 **Testing:**
-- [ ] Unit test: All middleware functions work
+- [x] Unit test: All middleware functions work
 - [ ] Integration test: Full Fiber app flow
 
 ---
@@ -173,10 +173,10 @@ func ClaimsFromFiber[T Claims](c *fiber.Ctx) *T
 **Estimated Hours:** 3
 
 **Acceptance Criteria:**
-- [ ] Same functionality as HTTP middleware
-- [ ] Uses Echo context
-- [ ] Echo-style handler signature
-- [ ] Helper: `ClaimsFromEcho[T](c echo.Context)`
+- [x] Same functionality as HTTP middleware
+- [x] Uses Echo context
+- [x] Echo-style handler signature
+- [x] Helper: `ClaimsFromEcho[T](c echo.Context)`
 
 **Implementation:**
 ```go
@@ -194,7 +194,7 @@ func ClaimsFromEcho[T Claims](c echo.Context) *T
 ```
 
 **Testing:**
-- [ ] Unit test: All middleware functions work
+- [x] Unit test: All middleware functions work
 - [ ] Integration test: Full Echo app flow
 
 ---
@@ -206,10 +206,10 @@ func ClaimsFromEcho[T Claims](c echo.Context) *T
 **Estimated Hours:** 3
 
 **Acceptance Criteria:**
-- [ ] Same functionality as HTTP middleware
-- [ ] Uses Gin context
-- [ ] Gin-style handler signature
-- [ ] Helper: `ClaimsFromGin[T](c *gin.Context)`
+- [x] Same functionality as HTTP middleware
+- [x] Uses Gin context
+- [x] Gin-style handler signature
+- [x] Helper: `ClaimsFromGin[T](c *gin.Context)`
 
 **Implementation:**
 ```go
@@ -227,7 +227,7 @@ func ClaimsFromGin[T Claims](c *gin.Context) *T
 ```
 
 **Testing:**
-- [ ] Unit test: All middleware functions work
+- [x] Unit test: All middleware functions work
 - [ ] Integration test: Full Gin app flow
 
 ---
@@ -239,10 +239,10 @@ func ClaimsFromGin[T Claims](c *gin.Context) *T
 **Estimated Hours:** 2
 
 **Acceptance Criteria:**
-- [ ] Same functionality as HTTP middleware
-- [ ] Compatible with Chi router
-- [ ] Chi-style middleware signature
-- [ ] Uses standard context
+- [x] Same functionality as HTTP middleware
+- [x] Compatible with Chi router
+- [x] Chi-style middleware signature
+- [x] Uses standard context
 
 **Implementation:**
 ```go
@@ -258,7 +258,7 @@ func (m *ChiMiddleware) Authenticate(next http.Handler) http.Handler
 ```
 
 **Testing:**
-- [ ] Unit test: All middleware functions work
+- [x] Unit test: All middleware functions work
 - [ ] Integration test: Full Chi app flow
 
 ---
@@ -270,10 +270,10 @@ func (m *ChiMiddleware) Authenticate(next http.Handler) http.Handler
 **Estimated Hours:** 2
 
 **Acceptance Criteria:**
-- [ ] JSON error response format
-- [ ] Error code mapping
-- [ ] Custom error handler support
-- [ ] Content-Type header set
+- [x] JSON error response format
+- [x] Error code mapping
+- [x] Custom error handler support
+- [x] Content-Type header set
 
 **Implementation:**
 ```go
@@ -302,9 +302,9 @@ var errorCodeMap = map[error]string{
 ```
 
 **Testing:**
-- [ ] Unit test: Error code mapping correct
-- [ ] Unit test: JSON response format correct
-- [ ] Unit test: Custom handler is called
+- [x] Unit test: Error code mapping correct
+- [x] Unit test: JSON response format correct
+- [x] Unit test: Custom handler is called
 
 ---
 
@@ -315,10 +315,10 @@ var errorCodeMap = map[error]string{
 **Estimated Hours:** 2
 
 **Acceptance Criteria:**
-- [ ] Skip paths configuration
-- [ ] Custom token lookup sources
-- [ ] Custom error handler
-- [ ] Token from cookie option
+- [x] Skip paths configuration
+- [x] Custom token lookup sources
+- [x] Custom error handler
+- [x] Token from cookie option
 
 **Implementation:**
 ```go
@@ -332,24 +332,32 @@ func WithErrorHandler(handler ErrorHandler) Option
 ```
 
 **Testing:**
-- [ ] Unit test: Options modify config correctly
-- [ ] Unit test: Skip paths work
-- [ ] Unit test: Custom token sources work
+- [x] Unit test: Options modify config correctly
+- [x] Unit test: Skip paths work
+- [x] Unit test: Custom token sources work
+
+---
+
+## Remaining Work
+
+> **STATUS: ~95% Complete** - All middleware adapters implemented with tests. Only need full integration tests.
+
+- [ ] Full integration tests for each framework
 
 ---
 
 ## Phase 6 Checklist
 
-- [ ] Core middleware logic implemented
-- [ ] Context helpers implemented
-- [ ] net/http middleware implemented and tested
-- [ ] Fiber middleware implemented and tested
-- [ ] Echo middleware implemented and tested
-- [ ] Gin middleware implemented and tested
-- [ ] Chi middleware implemented and tested
-- [ ] Error handling implemented
-- [ ] Middleware options implemented
-- [ ] All unit tests pass
+- [x] Core middleware logic implemented
+- [x] Context helpers implemented
+- [x] net/http middleware implemented and tested
+- [x] Fiber middleware implemented and tested
+- [x] Echo middleware implemented and tested
+- [x] Gin middleware implemented and tested
+- [x] Chi middleware implemented and tested
+- [x] Error handling implemented
+- [x] Middleware options implemented
+- [x] All unit tests pass
 - [ ] All integration tests pass
 
 ## Integration Test Examples
