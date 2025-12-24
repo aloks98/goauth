@@ -368,6 +368,10 @@ See [examples/fullstack/README.md](examples/fullstack/README.md) for detailed se
 
 ## Documentation
 
+### Guides
+- [Getting Started](docs/getting-started.md) - Step-by-step integration guide
+- [API Reference](docs/api-reference.md) - Complete function documentation
+
 ### Architecture
 - [Overview](docs/architecture/01-overview.md) - Core principles and design
 - [Package Structure](docs/architecture/02-package-structure.md) - Project layout
@@ -375,7 +379,6 @@ See [examples/fullstack/README.md](examples/fullstack/README.md) for detailed se
 - [RBAC System](docs/architecture/04-rbac-system.md) - Roles and permissions
 - [Store Interface](docs/architecture/05-store-interface.md) - Database adapters
 - [Middleware](docs/architecture/06-middleware.md) - Framework integrations
-- [API Reference](docs/architecture/07-api-reference.md) - Public API
 - [Config Reference](docs/architecture/08-config-reference.md) - Configuration options
 - [Database Schema](docs/architecture/09-database-schema.md) - Tables and migrations
 - [OAuth Integration](docs/architecture/10-oauth-integration.md) - OAuth2/OIDC integration
