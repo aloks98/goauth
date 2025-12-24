@@ -1,0 +1,47 @@
+{{range .Users}}
+<tr>
+    <td>{{.Name}}</td>
+    <td>{{.Email}}</td>
+    <td>
+        {{if $.CanUpdateUsers}}
+        <form hx-post="/admin/users/{{.ID}}/assign-role"
+              hx-target="#flash"
+              hx-swap="innerHTML">
+            <select name="role" class="form-select form-select-sm"
+                    onchange="this.form.requestSubmit()"
+                    style="min-width: 100px;">
+                <option value="">-- Select Role --</option>
+                {{$currentRole := .Role}}
+                {{range $.AvailableRoles}}
+                <option value="{{.}}" {{if eq . $currentRole}}selected{{end}}>{{.}}</option>
+                {{end}}
+            </select>
+        </form>
+        {{else}}
+        {{if .Role}}
+        <span class="badge badge-primary">{{.Role}}</span>
+        {{else}}
+        <span class="text-muted">-</span>
+        {{end}}
+        {{end}}
+    </td>
+    <td>{{.CreatedAt.Format "Jan 02, 2006"}}</td>
+    <td>
+        {{if $.CanRevokeSessions}}
+        <button class="btn btn-danger btn-sm"
+                hx-post="/admin/users/{{.ID}}/revoke-tokens"
+                hx-target="#flash"
+                hx-swap="innerHTML"
+                hx-confirm="Revoke all tokens for {{.Name}}?">
+            Revoke Tokens
+        </button>
+        {{else}}
+        <span class="text-muted">-</span>
+        {{end}}
+    </td>
+</tr>
+{{else}}
+<tr>
+    <td colspan="5" class="text-center text-muted">No users found</td>
+</tr>
+{{end}}

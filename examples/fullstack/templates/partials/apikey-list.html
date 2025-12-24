@@ -1,0 +1,36 @@
+{{range .Keys}}
+<tr id="apikey-{{.ID}}">
+    <td>{{.Name}}</td>
+    <td><span class="code">{{.KeyPrefix}}</span></td>
+    <td>
+        {{if .Scopes}}
+        {{range .Scopes}}<span class="badge badge-primary">{{.}}</span> {{end}}
+        {{else}}
+        <span class="badge badge-success">Full Access</span>
+        {{end}}
+    </td>
+    <td>{{.CreatedAt.Format "Jan 02, 2006"}}</td>
+    <td>
+        {{if .LastUsed}}
+        {{.LastUsed.Format "Jan 02, 2006"}}
+        {{else}}
+        <span class="text-muted">Never</span>
+        {{end}}
+    </td>
+    <td>
+        <button class="btn btn-danger btn-sm"
+                hx-delete="/api/keys/{{.ID}}"
+                hx-target="#flash"
+                hx-swap="innerHTML"
+                hx-confirm="Are you sure you want to revoke this API key?">
+            Revoke
+        </button>
+    </td>
+</tr>
+{{else}}
+<tr>
+    <td colspan="6" class="text-center text-muted">
+        No API keys yet. Create one to get started.
+    </td>
+</tr>
+{{end}}

@@ -1,0 +1,76 @@
+version: 1
+
+permission_groups:
+  - name: Users
+    description: User management permissions
+    permissions:
+      - key: users:read
+        name: View Users
+        description: View user profiles and list
+      - key: users:create
+        name: Create Users
+        description: Create new user accounts
+      - key: users:update
+        name: Update Users
+        description: Update user information
+      - key: users:delete
+        name: Delete Users
+        description: Delete user accounts
+
+  - name: API Keys
+    description: API key management permissions
+    permissions:
+      - key: apikeys:read
+        name: View API Keys
+        description: View own API keys
+      - key: apikeys:create
+        name: Create API Keys
+        description: Create new API keys
+      - key: apikeys:revoke
+        name: Revoke API Keys
+        description: Revoke API keys
+
+  - name: Settings
+    description: System settings permissions
+    permissions:
+      - key: settings:read
+        name: View Settings
+        description: View system settings and admin panel
+      - key: settings:update
+        name: Update Settings
+        description: Modify system settings
+
+  - name: Sessions
+    description: Session management permissions
+    permissions:
+      - key: sessions:read
+        name: View Sessions
+        description: View active sessions
+      - key: sessions:revoke
+        name: Revoke Sessions
+        description: Revoke user sessions
+
+role_templates:
+  - key: admin
+    name: Administrator
+    description: Full system access
+    permissions:
+      - "*"
+
+  - key: user
+    name: Standard User
+    description: Regular user with self-service capabilities
+    permissions:
+      - users:read
+      - apikeys:read
+      - apikeys:create
+      - apikeys:revoke
+      - sessions:read
+
+  - key: viewer
+    name: Viewer
+    description: Read-only access
+    permissions:
+      - users:read
+      - apikeys:read
+      - sessions:read

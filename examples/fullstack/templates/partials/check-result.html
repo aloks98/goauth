@@ -1,0 +1,9 @@
+{{if .HasPermission}}
+<div class="alert alert-success">
+    You <strong>have</strong> the permission: <code>{{.Permission}}</code>
+</div>
+{{else}}
+<div class="alert alert-danger">
+    You <strong>don't have</strong> the permission: <code>{{.Permission}}</code>
+</div>
+{{end}}

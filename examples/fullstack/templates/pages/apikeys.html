@@ -1,0 +1,31 @@
+<div class="flex flex-between items-center mb-2">
+    <h1>API Keys</h1>
+    <button class="btn btn-primary"
+            hx-get="/api/keys/new"
+            hx-target="#modal-container"
+            hx-swap="innerHTML">
+        + Create New Key
+    </button>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Key</th>
+                <th>Scopes</th>
+                <th>Created</th>
+                <th>Last Used</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="apikey-list" hx-get="/api/keys" hx-trigger="load, apikey-created from:body, apikey-revoked from:body">
+            <tr>
+                <td colspan="6" class="text-center text-muted">Loading...</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div id="modal-container"></div>

@@ -1,0 +1,67 @@
+<h1 class="mb-2">Dashboard</h1>
+
+<div class="grid grid-2">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Your Profile</h2>
+        </div>
+        <div class="user-info mb-2">
+            <div class="user-avatar">{{slice .User.Name 0 1}}</div>
+            <div>
+                <strong>{{.User.Name}}</strong>
+                <div class="text-muted">{{.User.Email}}</div>
+            </div>
+        </div>
+        <div class="mb-1">
+            <strong>Role:</strong>
+            <span class="badge badge-primary">{{.User.Role}}</span>
+        </div>
+        <div class="mb-1">
+            <strong>User ID:</strong>
+            <span class="code">{{.User.ID}}</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Quick Stats</h2>
+        </div>
+        <div class="grid grid-2">
+            <div class="stat">
+                <div class="stat-value">{{len .User.Permissions}}</div>
+                <div class="stat-label">Permissions</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">{{.User.Role}}</div>
+                <div class="stat-label">Role</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-2">
+    <div class="card-header">
+        <h2 class="card-title">Your Permissions</h2>
+    </div>
+    <div class="permissions">
+        {{range .User.Permissions}}
+        <span class="badge badge-success">{{.}}</span>
+        {{else}}
+        <span class="text-muted">No permissions assigned</span>
+        {{end}}
+    </div>
+</div>
+
+<div class="card mt-2">
+    <div class="card-header">
+        <h2 class="card-title">Session Actions</h2>
+    </div>
+    <div class="mt-1">
+        <button class="btn btn-danger btn-sm"
+                hx-post="/logout-all"
+                hx-target="#flash"
+                hx-confirm="This will log you out from all devices. Continue?">
+            Logout All Sessions
+        </button>
+    </div>
+</div>

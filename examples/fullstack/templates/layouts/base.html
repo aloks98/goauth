@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - GoAuth Demo</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <a href="/dashboard" class="logo">GoAuth Demo</a>
+            {{if .User}}
+            <ul class="nav-links">
+                <li><a href="/dashboard" {{if eq .Active "dashboard"}}class="active"{{end}}>Dashboard</a></li>
+                <li><a href="/api-keys" {{if eq .Active "apikeys"}}class="active"{{end}}>API Keys</a></li>
+                <li><a href="/rbac" {{if eq .Active "rbac"}}class="active"{{end}}>RBAC Demo</a></li>
+                {{if eq .User.Role "admin"}}
+                <li><a href="/admin" {{if eq .Active "admin"}}class="active"{{end}}>Admin</a></li>
+                {{end}}
+                <li>
+                    <button class="btn btn-secondary btn-sm"
+                            hx-post="/logout"
+                            hx-redirect="/login">
+                        Logout
+                    </button>
+                </li>
+            </ul>
+            {{end}}
+        </div>
+    </nav>
+
+    <main class="container">
+        <div id="flash"></div>
+        {{.Content}}
+    </main>
+
+    <script>
+        // Handle HTMX redirects
+        document.body.addEventListener('htmx:beforeSwap', function(evt) {
+            if (evt.detail.xhr.getResponseHeader('HX-Redirect')) {
+                window.location.href = evt.detail.xhr.getResponseHeader('HX-Redirect');
+            }
+        });
+
+        // Close modal on backdrop click
+        document.body.addEventListener('click', function(evt) {
+            if (evt.target.classList.contains('modal-backdrop')) {
+                evt.target.remove();
+            }
+        });
+
+        // Close modal on button click
+        function closeModal() {
+            document.querySelector('.modal-backdrop')?.remove();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<div class="modal-backdrop">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>API Key Created</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="alert alert-warning">
+            <strong>Important:</strong> Copy this key now. You won't be able to see it again!
+        </div>
+        <div class="form-group">
+            <label>Your API Key</label>
+            <div class="code-block" style="word-break: break-all;">
+                {{.RawKey}}
+            </div>
+        </div>
+        <button class="btn btn-primary" onclick="navigator.clipboard.writeText('{{.RawKey}}'); this.innerText='Copied!';">
+            Copy to Clipboard
+        </button>
+        <button class="btn btn-secondary" onclick="closeModal();"
+                hx-trigger="click" hx-get="/api/keys" hx-target="#apikey-list" hx-swap="innerHTML">
+            Done
+        </button>
+    </div>
+</div>

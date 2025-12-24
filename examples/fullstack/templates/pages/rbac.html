@@ -1,0 +1,81 @@
+<h1 class="mb-2">RBAC Demo</h1>
+
+<div class="grid grid-2">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Your Permissions</h2>
+        </div>
+        <div id="user-permissions">
+            {{if .UserPerms}}
+            <div class="mb-2">
+                <strong>Role:</strong>
+                <span class="badge badge-primary">{{.UserPerms.RoleLabel}}</span>
+                {{if and .UserPerms.BaseRole (ne .UserPerms.RoleLabel .UserPerms.BaseRole)}}
+                <span class="text-muted">(base: {{.UserPerms.BaseRole}})</span>
+                {{end}}
+            </div>
+            <div class="mb-2">
+                <strong>Permission Version:</strong>
+                <span class="badge badge-warning">v{{.UserPerms.PermissionVersion}}</span>
+            </div>
+            <div class="permissions">
+                {{range .UserPerms.Permissions}}
+                <span class="badge badge-success">{{.}}</span>
+                {{else}}
+                <span class="text-muted">No permissions</span>
+                {{end}}
+            </div>
+            {{else}}
+            <span class="text-muted">No permissions data</span>
+            {{end}}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Assign Role</h2>
+        </div>
+        <form hx-post="/rbac/assign" hx-target="#flash" hx-swap="innerHTML">
+            <div class="form-group">
+                <label for="role">Select Role</label>
+                <select name="role" id="role" class="form-control">
+                    {{range .Roles}}
+                    <option value="{{.Key}}">{{.Name}} - {{.Description}}</option>
+                    {{end}}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Assign Role</button>
+        </form>
+    </div>
+</div>
+
+<div class="grid grid-2 mt-2">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Add Permission</h2>
+        </div>
+        <form hx-post="/rbac/add-permission" hx-target="#flash" hx-swap="innerHTML">
+            <div class="form-group">
+                <label for="permission">Permission</label>
+                <input type="text" name="permission" id="permission" class="form-control"
+                       placeholder="e.g., custom:action">
+            </div>
+            <button type="submit" class="btn btn-primary">Add Permission</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Check Permission</h2>
+        </div>
+        <form hx-post="/rbac/check" hx-target="#check-result" hx-swap="innerHTML">
+            <div class="form-group">
+                <label for="check-perm">Permission to Check</label>
+                <input type="text" name="permission" id="check-perm" class="form-control"
+                       placeholder="e.g., users:read">
+            </div>
+            <button type="submit" class="btn btn-primary">Check</button>
+        </form>
+        <div id="check-result" class="mt-2"></div>
+    </div>
+</div>

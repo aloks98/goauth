@@ -1,0 +1,34 @@
+<div class="modal-backdrop">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Create API Key</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <form hx-post="/api/keys" hx-target="#modal-container" hx-swap="innerHTML">
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" id="name" name="name" class="form-control" required
+                       placeholder="e.g., Production API Key">
+            </div>
+            <div class="form-group">
+                <label for="scopes">Scopes (optional, comma-separated)</label>
+                <input type="text" id="scopes" name="scopes" class="form-control"
+                       placeholder="e.g., read, write">
+                <small class="text-muted">Leave empty for full access</small>
+            </div>
+            <div class="form-group">
+                <label for="expires_in">Expires In</label>
+                <select id="expires_in" name="expires_in" class="form-control">
+                    <option value="30d">30 days</option>
+                    <option value="90d">90 days</option>
+                    <option value="1y">1 year</option>
+                    <option value="never">Never</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Key</button>
+            </div>
+        </form>
+    </div>
+</div>

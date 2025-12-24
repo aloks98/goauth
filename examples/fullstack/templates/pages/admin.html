@@ -1,0 +1,70 @@
+<h1 class="mb-2">Admin Panel</h1>
+
+<div id="flash"></div>
+
+{{if .CanViewUsers}}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">All Users</h2>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="users-list" hx-get="/admin/users" hx-trigger="load, user-role-changed from:body">
+            <tr>
+                <td colspan="5" class="text-center text-muted">Loading...</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{{end}}
+
+{{if .CanViewSettings}}
+<div class="card mt-2">
+    <div class="card-header">
+        <h2 class="card-title">Available Roles</h2>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Key</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Permissions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Roles}}
+            <tr>
+                <td><span class="code">{{.Key}}</span></td>
+                <td>{{.Name}}</td>
+                <td class="text-muted">{{.Description}}</td>
+                <td>
+                    <div class="permissions">
+                        {{range .Permissions}}
+                        <span class="badge badge-primary">{{.}}</span>
+                        {{end}}
+                    </div>
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+{{end}}
+
+{{if not (or .CanViewUsers .CanViewSettings)}}
+<div class="card">
+    <div class="card-body text-center text-muted">
+        <p>You don't have permission to view admin content.</p>
+        <p>Required permissions: <code>users:read</code> or <code>settings:read</code></p>
+    </div>
+</div>
+{{end}}
