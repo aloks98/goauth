@@ -408,6 +408,210 @@ func TestOptionalAuthenticate_WithoutToken(t *testing.T) {
 	}
 }
 
+func TestRequireAllPermissions_HasAll(t *testing.T) {
+	checker := &mockPermissionChecker{hasPermission: true}
+
+	middleware := RequireAllPermissions(checker, []string{"users:read", "users:write"}, nil)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/users", nil)
+	ctx := SetUserID(req.Context(), "user123")
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", w.Code)
+	}
+}
+
+func TestRequireAllPermissions_MissingOne(t *testing.T) {
+	checker := &mockPermissionChecker{hasPermission: false}
+
+	middleware := RequireAllPermissions(checker, []string{"users:read", "users:delete"}, nil)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("handler should not be called")
+	}))
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/users/1", nil)
+	ctx := SetUserID(req.Context(), "user123")
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Errorf("expected status 403, got %d", w.Code)
+	}
+}
+
+func TestRequireAllPermissions_NoUserID(t *testing.T) {
+	checker := &mockPermissionChecker{hasPermission: true}
+
+	middleware := RequireAllPermissions(checker, []string{"users:read"}, nil)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("handler should not be called")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/users", nil)
+	// No user ID in context
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status 401, got %d", w.Code)
+	}
+}
+
+func TestRequireAllPermissions_NilChecker(t *testing.T) {
+	middleware := RequireAllPermissions(nil, []string{"users:read"}, nil)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("handler should not be called")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/users", nil)
+	ctx := SetUserID(req.Context(), "user123")
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status 401, got %d", w.Code)
+	}
+}
+
+func TestRequireAllPermissions_CheckerError(t *testing.T) {
+	checker := &mockPermissionChecker{err: errors.New("database error")}
+
+	middleware := RequireAllPermissions(checker, []string{"users:read"}, nil)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("handler should not be called")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/users", nil)
+	ctx := SetUserID(req.Context(), "user123")
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status 401, got %d", w.Code)
+	}
+}
+
+func TestRequireAnyPermission_HasOne(t *testing.T) {
+	checker := &mockPermissionChecker{hasPermission: true}
+
+	middleware := RequireAnyPermission(checker, []string{"users:read", "users:write", "admin:*"}, nil)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/users", nil)
+	ctx := SetUserID(req.Context(), "user123")
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", w.Code)
+	}
+}
+
+func TestRequireAnyPermission_HasNone(t *testing.T) {
+	checker := &mockPermissionChecker{hasPermission: false}
+
+	middleware := RequireAnyPermission(checker, []string{"admin:read", "admin:write"}, nil)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("handler should not be called")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/admin", nil)
+	ctx := SetUserID(req.Context(), "user123")
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Errorf("expected status 403, got %d", w.Code)
+	}
+}
+
+func TestRequireAnyPermission_NoUserID(t *testing.T) {
+	checker := &mockPermissionChecker{hasPermission: true}
+
+	middleware := RequireAnyPermission(checker, []string{"users:read"}, nil)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("handler should not be called")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/users", nil)
+	// No user ID in context
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status 401, got %d", w.Code)
+	}
+}
+
+func TestRequireAnyPermission_NilChecker(t *testing.T) {
+	middleware := RequireAnyPermission(nil, []string{"users:read"}, nil)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("handler should not be called")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/users", nil)
+	ctx := SetUserID(req.Context(), "user123")
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status 401, got %d", w.Code)
+	}
+}
+
+func TestRequireAnyPermission_CheckerError(t *testing.T) {
+	checker := &mockPermissionChecker{err: errors.New("database error")}
+
+	middleware := RequireAnyPermission(checker, []string{"users:read"}, nil)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("handler should not be called")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/users", nil)
+	ctx := SetUserID(req.Context(), "user123")
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status 401, got %d", w.Code)
+	}
+}
+
 // Example: Full middleware chain test
 func TestMiddlewareChain(t *testing.T) {
 	validator := &mockTokenValidator{

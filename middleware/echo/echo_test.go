@@ -355,3 +355,67 @@ func TestEchoClaims(t *testing.T) {
 		t.Errorf("expected status 200, got %d", rec.Code)
 	}
 }
+
+func TestEchoExtractFromCookie(t *testing.T) {
+	validator := &mockTokenValidator{
+		claims: map[string]string{"sub": "user123"},
+	}
+	extractor := &mockClaimsExtractor{}
+
+	cfg := &Config{
+		TokenExtractor: ExtractFromCookie("auth_token"),
+		ErrorHandler:   DefaultErrorHandler,
+	}
+
+	e := echo.New()
+	e.Use(Authenticate(validator, extractor, cfg))
+	e.GET("/api/resource", func(c echo.Context) error {
+		userID := UserID(c)
+		if userID != "user123" {
+			t.Errorf("expected user ID 'user123', got '%s'", userID)
+		}
+		return c.NoContent(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/resource", nil)
+	req.AddCookie(&http.Cookie{
+		Name:  "auth_token",
+		Value: "my-jwt-token",
+	})
+	rec := httptest.NewRecorder()
+
+	e.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", rec.Code)
+	}
+}
+
+func TestEchoMiddlewareChain(t *testing.T) {
+	validator := &mockTokenValidator{
+		claims: map[string]string{"sub": "user123"},
+	}
+	extractor := &mockClaimsExtractor{}
+	checker := &mockPermissionChecker{hasPermission: true}
+
+	e := echo.New()
+	e.Use(Authenticate(validator, extractor, nil))
+	e.Use(RequirePermission(checker, "posts:read", nil))
+	e.GET("/api/posts", func(c echo.Context) error {
+		userID := UserID(c)
+		return c.String(http.StatusOK, "Hello, "+userID)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/posts", nil)
+	req.Header.Set("Authorization", "Bearer valid-token")
+	rec := httptest.NewRecorder()
+
+	e.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", rec.Code)
+	}
+	if rec.Body.String() != "Hello, user123" {
+		t.Errorf("unexpected body: %s", rec.Body.String())
+	}
+}

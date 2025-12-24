@@ -355,3 +355,67 @@ func TestGinClaims(t *testing.T) {
 		t.Errorf("expected status 200, got %d", w.Code)
 	}
 }
+
+func TestGinExtractFromCookie(t *testing.T) {
+	validator := &mockTokenValidator{
+		claims: map[string]string{"sub": "user123"},
+	}
+	extractor := &mockClaimsExtractor{}
+
+	cfg := &Config{
+		TokenExtractor: ExtractFromCookie("auth_token"),
+		ErrorHandler:   DefaultErrorHandler,
+	}
+
+	router := gin.New()
+	router.Use(Authenticate(validator, extractor, cfg))
+	router.GET("/api/resource", func(c *gin.Context) {
+		userID := UserID(c)
+		if userID != "user123" {
+			t.Errorf("expected user ID 'user123', got '%s'", userID)
+		}
+		c.Status(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/resource", nil)
+	req.AddCookie(&http.Cookie{
+		Name:  "auth_token",
+		Value: "my-jwt-token",
+	})
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", w.Code)
+	}
+}
+
+func TestGinMiddlewareChain(t *testing.T) {
+	validator := &mockTokenValidator{
+		claims: map[string]string{"sub": "user123"},
+	}
+	extractor := &mockClaimsExtractor{}
+	checker := &mockPermissionChecker{hasPermission: true}
+
+	router := gin.New()
+	router.Use(Authenticate(validator, extractor, nil))
+	router.Use(RequirePermission(checker, "posts:read", nil))
+	router.GET("/api/posts", func(c *gin.Context) {
+		userID := UserID(c)
+		c.String(http.StatusOK, "Hello, "+userID)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/posts", nil)
+	req.Header.Set("Authorization", "Bearer valid-token")
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", w.Code)
+	}
+	if w.Body.String() != "Hello, user123" {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
