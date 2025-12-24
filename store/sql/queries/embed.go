@@ -3,7 +3,6 @@ package queries
 
 import (
 	"embed"
-	"regexp"
 	"strings"
 )
 
@@ -120,14 +119,24 @@ func loadQueries(fs embed.FS, dir string) (*Queries, error) {
 func parseNamedQueries(content string) map[string]string {
 	result := make(map[string]string)
 
-	// Pattern: -- name: QueryName followed by the SQL
-	pattern := regexp.MustCompile(`--\s*name:\s*(\w+)\s*\n([\s\S]*?)(?:(?:--\s*name:)|$)`)
-	matches := pattern.FindAllStringSubmatch(content, -1)
+	// Split by "-- name:" prefix
+	parts := strings.Split(content, "-- name:")
 
-	for _, match := range matches {
-		if len(match) >= 3 {
-			name := strings.TrimSpace(match[1])
-			query := strings.TrimSpace(match[2])
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+
+		// First line is the query name, rest is the SQL
+		lines := strings.SplitN(part, "\n", 2)
+		if len(lines) < 2 {
+			continue
+		}
+
+		name := strings.TrimSpace(lines[0])
+		query := strings.TrimSpace(lines[1])
+		if name != "" && query != "" {
 			result[name] = query
 		}
 	}

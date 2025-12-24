@@ -1,0 +1,82 @@
+# GoAuth RBAC Configuration
+# This file defines permission groups and role templates.
+
+version: 1
+
+# Permission groups organize related permissions together
+permission_groups:
+  - name: Users
+    description: User management permissions
+    permissions:
+      - key: users:read
+        name: View Users
+        description: View user profiles and lists
+      - key: users:create
+        name: Create Users
+        description: Create new user accounts
+      - key: users:update
+        name: Update Users
+        description: Modify user profiles
+      - key: users:delete
+        name: Delete Users
+        description: Remove user accounts
+
+  - name: Posts
+    description: Blog post management
+    permissions:
+      - key: posts:read
+        name: View Posts
+        description: Read published and draft posts
+      - key: posts:create
+        name: Create Posts
+        description: Create new blog posts
+      - key: posts:update
+        name: Edit Posts
+        description: Modify existing posts
+      - key: posts:delete
+        name: Delete Posts
+        description: Remove posts
+      - key: posts:publish
+        name: Publish Posts
+        description: Publish draft posts
+
+  - name: Settings
+    description: System settings
+    permissions:
+      - key: settings:read
+        name: View Settings
+        description: View system configuration
+      - key: settings:update
+        name: Modify Settings
+        description: Change system configuration
+
+# Role templates define default permission sets for user roles
+role_templates:
+  - key: admin
+    name: Administrator
+    description: Full system access
+    permissions:
+      - "*"  # Superuser - all permissions
+
+  - key: editor
+    name: Editor
+    description: Can manage posts and view users
+    permissions:
+      - users:read
+      - posts:*  # All post permissions
+
+  - key: author
+    name: Author
+    description: Can create and edit own posts
+    permissions:
+      - users:read
+      - posts:read
+      - posts:create
+      - posts:update
+
+  - key: viewer
+    name: Viewer
+    description: Read-only access
+    permissions:
+      - users:read
+      - posts:read

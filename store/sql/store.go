@@ -87,7 +87,7 @@ func getDriverName(d Dialect) string {
 	case MySQL:
 		return "mysql"
 	default:
-		return "postgres"
+		return "pgx"
 	}
 }
 

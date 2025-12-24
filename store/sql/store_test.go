@@ -1,18 +1,29 @@
 package sql
 
 import (
+	"context"
 	"testing"
 )
 
 func TestNew(t *testing.T) {
-	// Test that New returns an error when no DB is provided and DSN is empty
+	// Note: sql.Open doesn't validate DSN until first connection attempt
+	// With empty DSN, New() succeeds but Ping() will fail
 	cfg := &Config{
 		Dialect: PostgreSQL,
+		DSN:     "", // Empty DSN
 	}
 
-	_, err := New(cfg)
+	s, err := New(cfg)
+	if err != nil {
+		// Some drivers may error on empty DSN at Open time
+		return
+	}
+	defer s.Close()
+
+	// The real validation happens on Ping
+	err = s.Ping(context.Background())
 	if err == nil {
-		t.Error("expected error when no DB or DSN provided")
+		t.Error("expected error when pinging with empty DSN")
 	}
 }
 
@@ -21,9 +32,9 @@ func TestGetDriverName(t *testing.T) {
 		dialect  Dialect
 		expected string
 	}{
-		{PostgreSQL, "postgres"},
+		{PostgreSQL, "pgx"},
 		{MySQL, "mysql"},
-		{Dialect("unknown"), "postgres"}, // defaults to postgres
+		{Dialect("unknown"), "pgx"}, // defaults to pgx (postgres via pgx driver)
 	}
 
 	for _, tt := range tests {
@@ -139,5 +150,46 @@ func TestDialectConstants(t *testing.T) {
 	}
 	if MySQL != "mysql" {
 		t.Errorf("MySQL = %q, want \"mysql\"", MySQL)
+	}
+}
+
+func TestQueriesAreLoaded(t *testing.T) {
+	// Test that all required queries are loaded for each dialect
+	for _, dialect := range []Dialect{PostgreSQL, MySQL} {
+		t.Run(string(dialect), func(t *testing.T) {
+			q := getDialectQueries(dialect, "goauth_")
+			if q == nil {
+				t.Fatalf("getDialectQueries(%s) returned nil", dialect)
+			}
+
+			// Check all queries have content
+			queries := map[string]string{
+				"insertRefreshToken":         q.insertRefreshToken,
+				"selectRefreshToken":         q.selectRefreshToken,
+				"revokeRefreshToken":         q.revokeRefreshToken,
+				"revokeTokenFamily":          q.revokeTokenFamily,
+				"revokeAllUserRefreshTokens": q.revokeAllUserRefreshTokens,
+				"deleteExpiredRefreshTokens": q.deleteExpiredRefreshTokens,
+				"insertBlacklist":            q.insertBlacklist,
+				"selectBlacklist":            q.selectBlacklist,
+				"selectUserPermissions":      q.selectUserPermissions,
+				"upsertUserPermissions":      q.upsertUserPermissions,
+				"deleteUserPermissions":      q.deleteUserPermissions,
+				"updateUsersWithRole":        q.updateUsersWithRole,
+				"selectRoleTemplates":        q.selectRoleTemplates,
+				"upsertRoleTemplate":         q.upsertRoleTemplate,
+				"insertAPIKey":               q.insertAPIKey,
+				"selectAPIKeyByHash":         q.selectAPIKeyByHash,
+				"selectAPIKeysByUser":        q.selectAPIKeysByUser,
+				"revokeAPIKey":               q.revokeAPIKey,
+				"deleteExpiredAPIKeys":       q.deleteExpiredAPIKeys,
+			}
+
+			for name, query := range queries {
+				if query == "" {
+					t.Errorf("%s query is empty for dialect %s", name, dialect)
+				}
+			}
+		})
 	}
 }

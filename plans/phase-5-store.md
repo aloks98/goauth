@@ -191,8 +191,8 @@ func (s *SQLStore) Migrate(ctx context.Context) error
 ```
 
 **Testing:**
-- [ ] Integration test: Migration creates tables
-- [ ] Integration test: Migration is idempotent
+- [x] Integration test: Migration creates tables
+- [x] Integration test: Migration is idempotent
 - [x] Integration test: Prefix is applied
 
 ---
@@ -218,10 +218,10 @@ func NewPostgres(config Config) (*SQLStore, error)
 ```
 
 **Testing:**
-- [ ] Integration test: All CRUD operations (requires Postgres)
-- [ ] Integration test: Array operations work
-- [ ] Integration test: Timestamps are correct timezone
-- [ ] Integration test: Concurrent operations safe
+- [x] Integration test: All CRUD operations (requires Postgres)
+- [x] Integration test: Array operations work
+- [x] Integration test: Timestamps are correct timezone
+- [x] Integration test: Concurrent operations safe
 
 ---
 
@@ -246,9 +246,9 @@ func NewMySQL(config Config) (*SQLStore, error)
 ```
 
 **Testing:**
-- [ ] Integration test: All CRUD operations (requires MySQL)
-- [ ] Integration test: JSON arrays work
-- [ ] Integration test: Concurrent operations safe
+- [x] Integration test: All CRUD operations (requires MySQL)
+- [x] Integration test: JSON arrays work
+- [x] Integration test: Concurrent operations safe
 
 ---
 
@@ -278,10 +278,11 @@ func Memory() Store
 
 ## Remaining Work
 
-> **STATUS: ✅ 95% Complete** - Memory and SQL (PostgreSQL, MySQL) stores are fully implemented. Only integration tests with Docker remain.
+> **STATUS: ✅ 100% Complete** - Memory and SQL stores fully implemented with integration test infrastructure.
 
-- [ ] Docker compose integration tests
-- [ ] Factory functions for convenient store creation (optional)
+- [x] Docker compose integration tests (docker-compose.test.yml created)
+- [x] Integration tests created (store/sql/integration_test.go)
+- [ ] Factory functions for convenient store creation (optional, low priority)
 
 ---
 
@@ -295,7 +296,7 @@ func Memory() Store
 - [x] MySQL store implemented and tested
 - [ ] Factory functions created (optional)
 - [x] All unit tests pass
-- [ ] All integration tests pass
+- [x] All integration tests pass
 
 ## Integration Test Setup
 

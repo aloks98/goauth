@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  postgres:
+    container_name: goauth-test-postgres
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: goauth
+      POSTGRES_PASSWORD: goauth
+      POSTGRES_DB: goauth_test
+    ports:
+      - "15432:5432"  # Use port 15432 to avoid conflicts
+    volumes:
+      - ./.docker-data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U goauth -d goauth_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mysql:
+    container_name: goauth-test-mysql
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: goauth
+      MYSQL_DATABASE: goauth_test
+      MYSQL_USER: goauth
+      MYSQL_PASSWORD: goauth
+    ports:
+      - "13306:3306"  # Use port 13306 to avoid conflicts
+    volumes:
+      - ./.docker-data/mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "goauth", "-pgoauth"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    container_name: goauth-test-redis
+    image: redis:7-alpine
+    ports:
+      - "16379:6379"  # Use port 16379 to avoid conflicts
+    volumes:
+      - ./.docker-data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5

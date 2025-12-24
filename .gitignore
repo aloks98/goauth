@@ -39,6 +39,9 @@ Thumbs.db
 *.db
 *.sqlite
 
+# Docker test data
+.docker-data/
+
 # Credentials (never commit)
 *.pem
 *.key

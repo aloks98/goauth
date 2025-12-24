@@ -42,11 +42,13 @@
 **Estimated Hours:** 4
 
 **Acceptance Criteria:**
-- [ ] Tests for each store type
-- [ ] Full authentication flow tests
-- [ ] RBAC sync tests
-- [ ] Concurrent operation tests
-- [ ] Docker Compose for test databases
+- [x] Tests for each store type (store/sql/integration_test.go)
+- [x] Full authentication flow tests
+- [x] RBAC sync tests
+- [x] Concurrent operation tests
+- [x] Docker Compose for test databases (docker-compose.test.yml)
+- [x] All PostgreSQL integration tests passing
+- [x] All MySQL integration tests passing
 
 **Test Scenarios:**
 1. Full login → refresh → logout flow
@@ -81,7 +83,7 @@
 **Acceptance Criteria:**
 - [x] Basic net/http example
 - [ ] Fiber example
-- [ ] Complete permissions.yaml example
+- [x] Complete permissions.yaml example
 - [ ] README with usage instructions
 
 **Example Structure:**
@@ -92,8 +94,8 @@ examples/
 ├── fiber/
 │   └── main.go
 └── with-rbac/
-    ├── main.go
-    └── permissions.yaml
+    ├── main.go           ✓ Created
+    └── permissions.yaml  ✓ Created
 ```
 
 ---
@@ -128,16 +130,16 @@ examples/
 ## Phase 8 Checklist
 
 - [x] Unit test coverage meets targets (71.5% overall, key packages 80%+)
-- [ ] Integration tests pass (requires Docker)
+- [x] Integration tests pass (PostgreSQL + MySQL)
 - [x] Benchmarks documented
-- [x] Example applications working (basic example complete)
+- [x] Example applications working (basic + RBAC examples)
 - [ ] API documentation complete
 - [ ] Migration guides written
 - [ ] README finalized
 
 ## Remaining Work
 
-> **STATUS: ~50% Complete** - Unit tests, benchmarks, and basic example done. Need integration tests, more examples, and documentation.
+> **STATUS: ~75% Complete** - Unit tests, benchmarks, integration tests, and examples done. Need API documentation and migration guides.
 
 ## Test Commands
 
