@@ -183,7 +183,7 @@ func requireAuth(application *app.App) gin.HandlerFunc {
 			return
 		}
 
-		ctx := context.WithValue(c.Request.Context(), "user_id", claims.UserID)
+		ctx := context.WithValue(c.Request.Context(), app.ContextKeyUserID, claims.UserID)
 		ctx = middleware.SetClaims(ctx, claims)
 		ctx = middleware.SetUserID(ctx, claims.UserID)
 		c.Request = c.Request.WithContext(ctx)
@@ -197,7 +197,7 @@ func optionalAuth(application *app.App) gin.HandlerFunc {
 		if err == nil && cookie.Value != "" {
 			claims, err := application.Auth.ValidateAccessToken(c.Request.Context(), cookie.Value)
 			if err == nil && claims != nil {
-				ctx := context.WithValue(c.Request.Context(), "user_id", claims.UserID)
+				ctx := context.WithValue(c.Request.Context(), app.ContextKeyUserID, claims.UserID)
 				ctx = middleware.SetClaims(ctx, claims)
 				ctx = middleware.SetUserID(ctx, claims.UserID)
 				c.Request = c.Request.WithContext(ctx)

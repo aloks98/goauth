@@ -319,11 +319,11 @@ func (s *ScheduledTask) run() {
 	}
 }
 
-// CleanupFunc is a function that performs cleanup and returns the number of items deleted.
-type CleanupFunc func(ctx context.Context) (int64, error)
+// Func is a function that performs cleanup and returns the number of items deleted.
+type Func func(ctx context.Context) (int64, error)
 
-// WrapCleanupFunc wraps a cleanup function with logging.
-func WrapCleanupFunc(name string, fn CleanupFunc, logger Logger) func(context.Context) error {
+// WrapFunc wraps a cleanup function with logging.
+func WrapFunc(name string, fn Func, logger Logger) func(context.Context) error {
 	if logger == nil {
 		logger = &defaultLogger{}
 	}

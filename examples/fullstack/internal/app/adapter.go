@@ -1,3 +1,4 @@
+// Package app provides the core application setup for the GoAuth fullstack demo.
 package app
 
 import (

@@ -299,11 +299,11 @@ func TestMiddleware_SkipFunc(t *testing.T) {
 
 func TestGetClientIP(t *testing.T) {
 	tests := []struct {
-		name         string
-		remoteAddr   string
+		name          string
+		remoteAddr    string
 		xForwardedFor string
-		xRealIP      string
-		expected     string
+		xRealIP       string
+		expected      string
 	}{
 		{
 			name:       "remote addr only",

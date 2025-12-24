@@ -1,3 +1,4 @@
+// Package users provides user management for the GoAuth fullstack demo.
 package users
 
 import (

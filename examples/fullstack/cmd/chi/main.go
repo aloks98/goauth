@@ -187,7 +187,7 @@ func requireAuth(application *app.App) func(http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), "user_id", claims.UserID)
+			ctx := context.WithValue(r.Context(), app.ContextKeyUserID, claims.UserID)
 			ctx = middleware.SetClaims(ctx, claims)
 			ctx = middleware.SetUserID(ctx, claims.UserID)
 			next.ServeHTTP(w, r.WithContext(ctx))
@@ -202,7 +202,7 @@ func optionalAuth(application *app.App) func(http.Handler) http.Handler {
 			if err == nil && cookie.Value != "" {
 				claims, err := application.Auth.ValidateAccessToken(r.Context(), cookie.Value)
 				if err == nil && claims != nil {
-					ctx := context.WithValue(r.Context(), "user_id", claims.UserID)
+					ctx := context.WithValue(r.Context(), app.ContextKeyUserID, claims.UserID)
 					ctx = middleware.SetClaims(ctx, claims)
 					ctx = middleware.SetUserID(ctx, claims.UserID)
 					r = r.WithContext(ctx)

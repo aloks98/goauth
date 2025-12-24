@@ -248,7 +248,7 @@ func optionalAuthMiddleware(application *app.App, next http.Handler) http.Handle
 			claims, err := application.Auth.ValidateAccessToken(r.Context(), cookie.Value)
 			if err == nil && claims != nil {
 				// Add to context
-				ctx := context.WithValue(r.Context(), "user_id", claims.Subject)
+				ctx := context.WithValue(r.Context(), app.ContextKeyUserID, claims.Subject)
 				ctx = middleware.SetClaims(ctx, claims)
 				r = r.WithContext(ctx)
 			}
@@ -284,7 +284,7 @@ func requireAuthMiddleware(application *app.App, next http.Handler) http.Handler
 		}
 
 		// Add to context
-		ctx := context.WithValue(r.Context(), "user_id", claims.UserID)
+		ctx := context.WithValue(r.Context(), app.ContextKeyUserID, claims.UserID)
 		ctx = middleware.SetClaims(ctx, claims)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

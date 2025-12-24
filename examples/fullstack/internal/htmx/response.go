@@ -1,3 +1,4 @@
+// Package htmx provides helper functions for HTMX response headers.
 package htmx
 
 import (

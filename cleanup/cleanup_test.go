@@ -20,8 +20,8 @@ type mockStore struct {
 	errorOnAPIKeys       bool
 }
 
-func (m *mockStore) Close() error { return nil }
-func (m *mockStore) Ping(ctx context.Context) error { return nil }
+func (m *mockStore) Close() error                      { return nil }
+func (m *mockStore) Ping(ctx context.Context) error    { return nil }
 func (m *mockStore) Migrate(ctx context.Context) error { return nil }
 
 func (m *mockStore) SaveRefreshToken(ctx context.Context, token *store.RefreshToken) error {
@@ -317,14 +317,14 @@ func TestScheduledTask_WithError(t *testing.T) {
 	}
 }
 
-func TestWrapCleanupFunc(t *testing.T) {
+func TestWrapFunc(t *testing.T) {
 	logger := &testLogger{}
 
 	fn := func(ctx context.Context) (int64, error) {
 		return 10, nil
 	}
 
-	wrapped := WrapCleanupFunc("test", fn, logger)
+	wrapped := WrapFunc("test", fn, logger)
 
 	err := wrapped(context.Background())
 	if err != nil {
@@ -336,14 +336,14 @@ func TestWrapCleanupFunc(t *testing.T) {
 	}
 }
 
-func TestWrapCleanupFunc_ZeroDeleted(t *testing.T) {
+func TestWrapFunc_ZeroDeleted(t *testing.T) {
 	logger := &testLogger{}
 
 	fn := func(ctx context.Context) (int64, error) {
 		return 0, nil
 	}
 
-	wrapped := WrapCleanupFunc("test", fn, logger)
+	wrapped := WrapFunc("test", fn, logger)
 
 	err := wrapped(context.Background())
 	if err != nil {
@@ -356,14 +356,14 @@ func TestWrapCleanupFunc_ZeroDeleted(t *testing.T) {
 	}
 }
 
-func TestWrapCleanupFunc_Error(t *testing.T) {
+func TestWrapFunc_Error(t *testing.T) {
 	logger := &testLogger{}
 
 	fn := func(ctx context.Context) (int64, error) {
 		return 0, errors.New("test error")
 	}
 
-	wrapped := WrapCleanupFunc("test", fn, logger)
+	wrapped := WrapFunc("test", fn, logger)
 
 	err := wrapped(context.Background())
 	if err == nil {

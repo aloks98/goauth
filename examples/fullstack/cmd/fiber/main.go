@@ -75,11 +75,12 @@ func (f *fiberContext) SetCookie(cookie *http.Cookie) {
 		Secure:   cookie.Secure,
 		HTTPOnly: cookie.HttpOnly,
 	}
-	if cookie.SameSite == http.SameSiteLaxMode {
+	switch cookie.SameSite {
+	case http.SameSiteLaxMode:
 		fc.SameSite = "Lax"
-	} else if cookie.SameSite == http.SameSiteStrictMode {
+	case http.SameSiteStrictMode:
 		fc.SameSite = "Strict"
-	} else if cookie.SameSite == http.SameSiteNoneMode {
+	case http.SameSiteNoneMode:
 		fc.SameSite = "None"
 	}
 	f.c.Cookie(fc)

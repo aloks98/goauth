@@ -11,6 +11,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// User store errors.
 var (
 	ErrUserNotFound    = errors.New("user not found")
 	ErrUserExists      = errors.New("user already exists")

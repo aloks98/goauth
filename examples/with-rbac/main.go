@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/aloks98/goauth"
 	"github.com/aloks98/goauth/middleware"
@@ -82,9 +81,9 @@ func main() {
 	mux.HandleFunc("GET /roles", listRolesHandler(auth))
 
 	// Protected routes
-	mux.Handle("GET /me", authMW(http.HandlerFunc(meHandler(auth))))
-	mux.Handle("POST /users/{id}/role", authMW(http.HandlerFunc(assignRoleHandler(auth))))
-	mux.Handle("GET /users/{id}/permissions", authMW(http.HandlerFunc(getPermissionsHandler(auth))))
+	mux.Handle("GET /me", authMW(meHandler(auth)))
+	mux.Handle("POST /users/{id}/role", authMW(assignRoleHandler(auth)))
+	mux.Handle("GET /users/{id}/permissions", authMW(getPermissionsHandler(auth)))
 
 	// Permission-protected routes
 	mux.Handle("GET /posts", authMW(requirePermission(adapter, "posts:read", http.HandlerFunc(listPostsHandler))))
@@ -270,19 +269,10 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]any{
 		"accessed_by": userID,
 		"settings": map[string]any{
-			"site_name":    "My App",
-			"max_users":    1000,
-			"debug_mode":   false,
-			"maintenance":  false,
+			"site_name":   "My App",
+			"max_users":   1000,
+			"debug_mode":  false,
+			"maintenance": false,
 		},
 	})
-}
-
-// extractToken gets the bearer token from Authorization header
-func extractToken(r *http.Request) string {
-	auth := r.Header.Get("Authorization")
-	if strings.HasPrefix(auth, "Bearer ") {
-		return auth[7:]
-	}
-	return ""
 }

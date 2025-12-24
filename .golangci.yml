@@ -56,6 +56,18 @@ linters:
           - noctx
       - path: _test\.go
         text: "exported: exported"
+      # Example code doesn't need strict security checks
+      - path: examples/
+        linters:
+          - gosec
+          - errcheck
+          - noctx
+      - path: examples/
+        text: "context-keys-type"
+      - path: examples/
+        text: "package-comments"
+      - path: examples/
+        text: "SA1019"  # deprecated
 
 formatters:
   enable:

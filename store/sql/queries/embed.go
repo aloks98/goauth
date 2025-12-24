@@ -6,9 +6,13 @@ import (
 	"strings"
 )
 
+// PostgresFS embeds PostgreSQL query files.
+//
 //go:embed postgres/*.sql
 var PostgresFS embed.FS
 
+// MySQLFS embeds MySQL query files.
+//
 //go:embed mysql/*.sql
 var MySQLFS embed.FS
 

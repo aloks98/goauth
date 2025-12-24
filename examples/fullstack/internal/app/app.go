@@ -17,6 +17,15 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+// contextKey is a custom type for context keys to avoid collisions.
+type contextKey string
+
+// Context keys used in the application.
+const (
+	// ContextKeyUserID is the context key for the user ID.
+	ContextKeyUserID contextKey = "user_id"
+)
+
 // App is the main application container.
 type App struct {
 	Auth      *goauth.Auth[*Claims]

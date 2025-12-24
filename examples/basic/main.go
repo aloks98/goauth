@@ -70,11 +70,11 @@ func main() {
 	// Protected routes - using middleware
 	authMiddleware := middleware.Authenticate(adapter, adapter, nil)
 	mux.Handle("GET /me", authMiddleware(http.HandlerFunc(meHandler)))
-	mux.Handle("POST /logout", authMiddleware(http.HandlerFunc(logoutHandler(auth))))
+	mux.Handle("POST /logout", authMiddleware(logoutHandler(auth)))
 
 	// API key routes
-	mux.Handle("POST /api-keys", authMiddleware(http.HandlerFunc(createAPIKeyHandler(auth))))
-	mux.Handle("GET /api-keys", authMiddleware(http.HandlerFunc(listAPIKeysHandler(auth))))
+	mux.Handle("POST /api-keys", authMiddleware(createAPIKeyHandler(auth)))
+	mux.Handle("GET /api-keys", authMiddleware(listAPIKeysHandler(auth)))
 
 	// Start server
 	fmt.Println("Server running on http://localhost:8080")
