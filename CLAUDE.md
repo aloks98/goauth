@@ -184,7 +184,7 @@ GoAuth works with OAuth using external libraries - no built-in adapters. Use `go
 - Provider tokens are only for identity verification
 - Your app issues its own tokens via GoAuth
 - Link multiple providers to one user in YOUR database
-- See `architecture/10-oauth-integration.md` for complete examples
+- See `docs/architecture/10-oauth-integration.md` for complete examples
 
 ## Critical Flows
 
@@ -228,5 +228,4 @@ GoAuth works with OAuth using external libraries - no built-in adapters. Use `go
 ## Documentation Links
 
 - Architecture: `docs/architecture/`
-- Implementation Phases: `docs/phases/`
-- Testing Strategy: `docs/testing/testing-strategy.md`
+- Examples: `examples/` (basic, with-rbac, fullstack)

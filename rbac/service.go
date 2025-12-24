@@ -1,3 +1,5 @@
+// Package rbac provides Role-Based Access Control (RBAC) functionality.
+// It supports role templates, user-level permissions, and permission version tracking.
 package rbac
 
 import (
