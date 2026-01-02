@@ -612,6 +612,272 @@ func TestRequireAnyPermission_CheckerError(t *testing.T) {
 	}
 }
 
+func TestRequirePermission_NilChecker(t *testing.T) {
+	middleware := RequirePermission(nil, "users:read", nil)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("handler should not be called")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/users", nil)
+	ctx := SetUserID(req.Context(), "user123")
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status 401, got %d", w.Code)
+	}
+}
+
+func TestRequirePermission_NoUserID(t *testing.T) {
+	checker := &mockPermissionChecker{hasPermission: true}
+
+	middleware := RequirePermission(checker, "users:read", nil)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("handler should not be called")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/users", nil)
+	// No user ID in context
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status 401, got %d", w.Code)
+	}
+}
+
+func TestRequirePermission_CheckerError(t *testing.T) {
+	checker := &mockPermissionChecker{err: errors.New("database error")}
+
+	middleware := RequirePermission(checker, "users:read", nil)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("handler should not be called")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/users", nil)
+	ctx := SetUserID(req.Context(), "user123")
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status 401, got %d", w.Code)
+	}
+}
+
+func TestRequireScope_NoAPIKeyInfo(t *testing.T) {
+	middleware := RequireScope("users:read", nil)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("handler should not be called")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/users", nil)
+	// No API key info in context
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status 401, got %d", w.Code)
+	}
+}
+
+func TestAuthenticateAPIKey_SkipPath(t *testing.T) {
+	validator := &mockAPIKeyValidator{
+		err: errors.New("should not be called"),
+	}
+
+	cfg := &Config{
+		TokenExtractor: ExtractFromHeader("X-API-Key", ""),
+		ErrorHandler:   DefaultErrorHandler,
+		SkipPaths:      []string{"/health"},
+	}
+
+	middleware := AuthenticateAPIKey(validator, cfg)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", w.Code)
+	}
+}
+
+func TestAuthenticateAPIKey_NilExtractor(t *testing.T) {
+	validator := &mockAPIKeyValidator{
+		keyInfo: &APIKeyInfo{
+			ID:     "key-123",
+			UserID: "user-456",
+			Scopes: []string{},
+		},
+	}
+
+	// Config with nil TokenExtractor - should use default X-API-Key header
+	cfg := &Config{
+		TokenExtractor: nil, // Force nil to test default path
+		ErrorHandler:   DefaultErrorHandler,
+	}
+
+	middleware := AuthenticateAPIKey(validator, cfg)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/resource", nil)
+	req.Header.Set("X-API-Key", "sk_test_abc123")
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", w.Code)
+	}
+}
+
+func TestAuthenticateAPIKey_MissingKey(t *testing.T) {
+	validator := &mockAPIKeyValidator{}
+
+	cfg := &Config{
+		TokenExtractor: ExtractFromHeader("X-API-Key", ""),
+		ErrorHandler:   DefaultErrorHandler,
+	}
+
+	middleware := AuthenticateAPIKey(validator, cfg)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("handler should not be called")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/resource", nil)
+	// No X-API-Key header
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status 401, got %d", w.Code)
+	}
+}
+
+func TestOptionalAuthenticate_InvalidToken(t *testing.T) {
+	validator := &mockTokenValidator{
+		err: errors.New("invalid token"),
+	}
+	extractor := &mockClaimsExtractor{}
+
+	middleware := OptionalAuthenticate(validator, extractor, nil)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Should proceed without authentication
+		userID := GetUserID(r.Context())
+		if userID != "" {
+			t.Errorf("expected empty user ID for invalid token, got '%s'", userID)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/resource", nil)
+	req.Header.Set("Authorization", "Bearer invalid-token")
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", w.Code)
+	}
+}
+
+func TestContextHelpers_WrongTypes(t *testing.T) {
+	ctx := context.Background()
+
+	// Test GetUserID with wrong type in context
+	ctx = context.WithValue(ctx, UserIDKey, 12345) // int instead of string
+	if got := GetUserID(ctx); got != "" {
+		t.Errorf("GetUserID with wrong type = %q, want empty", got)
+	}
+
+	// Test GetPermissions with wrong type in context
+	ctx = context.Background()
+	ctx = context.WithValue(ctx, PermissionsKey, "not a slice")
+	if got := GetPermissions(ctx); got != nil {
+		t.Error("GetPermissions with wrong type should be nil")
+	}
+
+	// Test GetAPIKeyInfo with wrong type in context
+	ctx = context.Background()
+	ctx = context.WithValue(ctx, APIKeyKey, "not an APIKeyInfo")
+	if got := GetAPIKeyInfo(ctx); got != nil {
+		t.Error("GetAPIKeyInfo with wrong type should be nil")
+	}
+}
+
+func TestAuthenticate_WithNilExtractor(t *testing.T) {
+	validator := &mockTokenValidator{
+		claims: map[string]string{"sub": "user123"},
+	}
+
+	// Test with nil extractor - should still work, just not extract user ID
+	middleware := Authenticate(validator, nil, nil)
+
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Claims should be set
+		claims := GetClaims(r.Context())
+		if claims == nil {
+			t.Error("expected claims in context")
+		}
+		// But user ID won't be extracted
+		userID := GetUserID(r.Context())
+		if userID != "" {
+			t.Errorf("expected empty user ID with nil extractor, got '%s'", userID)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/resource", nil)
+	req.Header.Set("Authorization", "Bearer valid-token")
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", w.Code)
+	}
+}
+
+func TestSplitScope(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int // number of parts
+	}{
+		{"users:read", 2},
+		{"users", 1},
+		{"a:b:c", 2}, // Only splits on first colon
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			parts := splitScope(tt.input)
+			if len(parts) != tt.expected {
+				t.Errorf("splitScope(%q) len = %d, want %d", tt.input, len(parts), tt.expected)
+			}
+		})
+	}
+}
+
 // Example: Full middleware chain test
 func TestMiddlewareChain(t *testing.T) {
 	validator := &mockTokenValidator{

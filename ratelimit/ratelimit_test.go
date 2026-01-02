@@ -378,6 +378,124 @@ func TestDefaultConfig(t *testing.T) {
 	}
 }
 
+func TestSlidingWindowLimiter_Reset(t *testing.T) {
+	limiter := NewSlidingWindowLimiter(2, time.Minute)
+	defer limiter.Close()
+
+	ctx := context.Background()
+
+	// Use up the limit
+	limiter.Allow(ctx, "user1")
+	limiter.Allow(ctx, "user1")
+
+	allowed, _ := limiter.Allow(ctx, "user1")
+	if allowed {
+		t.Error("should be denied before reset")
+	}
+
+	// Reset
+	limiter.Reset(ctx, "user1")
+
+	// Should be allowed again
+	allowed, _ = limiter.Allow(ctx, "user1")
+	if !allowed {
+		t.Error("should be allowed after reset")
+	}
+}
+
+func TestTokenBucketLimiter_Reset(t *testing.T) {
+	limiter := NewTokenBucketLimiter(2, 0.1) // Very slow refill
+	defer limiter.Close()
+
+	ctx := context.Background()
+
+	// Use up the limit
+	limiter.Allow(ctx, "user1")
+	limiter.Allow(ctx, "user1")
+
+	allowed, _ := limiter.Allow(ctx, "user1")
+	if allowed {
+		t.Error("should be denied before reset")
+	}
+
+	// Reset
+	limiter.Reset(ctx, "user1")
+
+	// Should be allowed again
+	allowed, _ = limiter.Allow(ctx, "user1")
+	if !allowed {
+		t.Error("should be allowed after reset")
+	}
+}
+
+func TestSlidingWindowLimiter_DifferentKeys(t *testing.T) {
+	limiter := NewSlidingWindowLimiter(2, time.Minute)
+	defer limiter.Close()
+
+	ctx := context.Background()
+
+	// user1 uses 2 requests
+	limiter.Allow(ctx, "user1")
+	limiter.Allow(ctx, "user1")
+
+	// user1 should be denied
+	allowed, _ := limiter.Allow(ctx, "user1")
+	if allowed {
+		t.Error("user1 should be denied")
+	}
+
+	// user2 should still be allowed
+	allowed, _ = limiter.Allow(ctx, "user2")
+	if !allowed {
+		t.Error("user2 should be allowed")
+	}
+}
+
+func TestTokenBucketLimiter_DifferentKeys(t *testing.T) {
+	limiter := NewTokenBucketLimiter(2, 0.1) // Very slow refill
+	defer limiter.Close()
+
+	ctx := context.Background()
+
+	// user1 uses 2 tokens
+	limiter.Allow(ctx, "user1")
+	limiter.Allow(ctx, "user1")
+
+	// user1 should be denied
+	allowed, _ := limiter.Allow(ctx, "user1")
+	if allowed {
+		t.Error("user1 should be denied")
+	}
+
+	// user2 should still be allowed
+	allowed, _ = limiter.Allow(ctx, "user2")
+	if !allowed {
+		t.Error("user2 should be allowed")
+	}
+}
+
+func TestMiddleware_NilConfig(t *testing.T) {
+	limiter := NewMemoryLimiter(100, time.Minute)
+	defer limiter.Close()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// Middleware with nil config should use defaults
+	middleware := Middleware(limiter, nil)
+	wrappedHandler := middleware(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/resource", nil)
+	req.RemoteAddr = "192.168.1.1:12345"
+	w := httptest.NewRecorder()
+	wrappedHandler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", w.Code)
+	}
+}
+
 func BenchmarkMemoryLimiter_Allow(b *testing.B) {
 	limiter := NewMemoryLimiter(1000000, time.Hour)
 	defer limiter.Close()

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aloks98/goauth/apikey"
 	"github.com/aloks98/goauth/internal/testutil"
 )
 
@@ -763,3 +764,201 @@ role_templates:
 		t.Error("User should not have write permission after removal")
 	}
 }
+
+// =============================================================================
+// Additional Token Tests
+// =============================================================================
+
+func TestAuth_RevokeRefreshToken(t *testing.T) {
+	store := testutil.SetupPostgres(t)
+
+	auth, err := New[*TestClaims](
+		WithSecret("this-is-a-32-character-secret!!!"),
+		WithStore(store),
+	)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	defer auth.Close()
+
+	ctx := context.Background()
+
+	// Generate tokens
+	pair, err := auth.GenerateTokenPair(ctx, "user123", nil)
+	if err != nil {
+		t.Fatalf("GenerateTokenPair() error = %v", err)
+	}
+
+	// Get the JTI from the refresh token (format: jti.hash)
+	// We need to validate the access token to get the claims
+	claims, err := auth.ValidateAccessToken(ctx, pair.AccessToken)
+	if err != nil {
+		t.Fatalf("ValidateAccessToken() error = %v", err)
+	}
+
+	// Revoke the refresh token by JTI
+	if err := auth.RevokeRefreshToken(ctx, claims.JTI); err != nil {
+		t.Fatalf("RevokeRefreshToken() error = %v", err)
+	}
+}
+
+func TestAuth_RevokeTokenFamily(t *testing.T) {
+	store := testutil.SetupPostgres(t)
+
+	auth, err := New[*TestClaims](
+		WithSecret("this-is-a-32-character-secret!!!"),
+		WithStore(store),
+	)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	defer auth.Close()
+
+	ctx := context.Background()
+
+	// Generate tokens
+	pair, err := auth.GenerateTokenPair(ctx, "user123", nil)
+	if err != nil {
+		t.Fatalf("GenerateTokenPair() error = %v", err)
+	}
+
+	// Refresh to create a token family
+	newPair, err := auth.RefreshTokens(ctx, pair.RefreshToken)
+	if err != nil {
+		t.Fatalf("RefreshTokens() error = %v", err)
+	}
+
+	// Get the family ID (same as JTI from access token)
+	claims, err := auth.ValidateAccessToken(ctx, newPair.AccessToken)
+	if err != nil {
+		t.Fatalf("ValidateAccessToken() error = %v", err)
+	}
+
+	// Revoke the token family
+	if err := auth.RevokeTokenFamily(ctx, claims.JTI); err != nil {
+		t.Fatalf("RevokeTokenFamily() error = %v", err)
+	}
+}
+
+// =============================================================================
+// Additional API Key Tests
+// =============================================================================
+
+func TestAuth_ValidateAPIKeyWithScope(t *testing.T) {
+	store := testutil.SetupPostgres(t)
+
+	auth, err := New[*TestClaims](
+		WithSecret("this-is-a-32-character-secret!!!"),
+		WithStore(store),
+	)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	defer auth.Close()
+
+	ctx := context.Background()
+
+	// Create a key with scopes
+	createResult, err := auth.CreateAPIKey(ctx, "user123", &apikey.CreateKeyOptions{
+		Scopes: []string{"read", "write"},
+	})
+	if err != nil {
+		t.Fatalf("CreateAPIKey() error = %v", err)
+	}
+
+	// Validate with valid scope
+	result, err := auth.ValidateAPIKeyWithScope(ctx, createResult.RawKey, "read")
+	if err != nil {
+		t.Fatalf("ValidateAPIKeyWithScope() error = %v", err)
+	}
+	if result.UserID != "user123" {
+		t.Errorf("UserID = %q, want %q", result.UserID, "user123")
+	}
+
+	// Validate with another valid scope
+	_, err = auth.ValidateAPIKeyWithScope(ctx, createResult.RawKey, "write")
+	if err != nil {
+		t.Fatalf("ValidateAPIKeyWithScope() with 'write' scope error = %v", err)
+	}
+
+	// Validate with invalid scope
+	_, err = auth.ValidateAPIKeyWithScope(ctx, createResult.RawKey, "delete")
+	if err == nil {
+		t.Error("ValidateAPIKeyWithScope() should fail for scope not in key")
+	}
+}
+
+func TestAuth_ValidateAPIKeyWithScope_NoScopes(t *testing.T) {
+	store := testutil.SetupPostgres(t)
+
+	auth, err := New[*TestClaims](
+		WithSecret("this-is-a-32-character-secret!!!"),
+		WithStore(store),
+	)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	defer auth.Close()
+
+	ctx := context.Background()
+
+	// Create a key without scopes (allows all)
+	createResult, err := auth.CreateAPIKey(ctx, "user123", nil)
+	if err != nil {
+		t.Fatalf("CreateAPIKey() error = %v", err)
+	}
+
+	// Should allow any scope
+	_, err = auth.ValidateAPIKeyWithScope(ctx, createResult.RawKey, "any:scope")
+	if err != nil {
+		t.Fatalf("ValidateAPIKeyWithScope() should allow any scope when key has no scopes: %v", err)
+	}
+}
+
+// =============================================================================
+// Rate Limiter Tests
+// =============================================================================
+
+func TestAuth_WithRateLimiter(t *testing.T) {
+	store := testutil.SetupPostgres(t)
+
+	config := RateLimitConfig{
+		Enabled:           true,
+		RequestsPerWindow: 100,
+		WindowDuration:    time.Minute,
+	}
+
+	auth, err := New[*TestClaims](
+		WithSecret("this-is-a-32-character-secret!!!"),
+		WithStore(store),
+		WithRateLimiter(config),
+	)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	defer auth.Close()
+
+	rl := auth.RateLimiter()
+	if rl == nil {
+		t.Error("RateLimiter() should not return nil when configured with Enabled=true")
+	}
+}
+
+func TestAuth_RateLimiter_Nil(t *testing.T) {
+	store := testutil.SetupPostgres(t)
+
+	auth, err := New[*TestClaims](
+		WithSecret("this-is-a-32-character-secret!!!"),
+		WithStore(store),
+	)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	defer auth.Close()
+
+	rl := auth.RateLimiter()
+	if rl != nil {
+		t.Error("RateLimiter() should return nil when not configured")
+	}
+}
+

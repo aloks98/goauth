@@ -354,3 +354,132 @@ func TestKeyUniqueness(t *testing.T) {
 		keys[result.RawKey] = true
 	}
 }
+
+func TestNewService_ZeroLengths(t *testing.T) {
+	s := testutil.SetupPostgres(t)
+
+	// Test with zero KeyLength and HintLength - should use defaults
+	cfg := &Config{
+		Prefix:     "test",
+		KeyLength:  0, // Should default to 32
+		HintLength: 0, // Should default to 4
+	}
+	svc := NewService(cfg, s)
+
+	if svc.config.KeyLength != 32 {
+		t.Errorf("expected key length 32 (default), got %d", svc.config.KeyLength)
+	}
+	if svc.config.HintLength != 4 {
+		t.Errorf("expected hint length 4 (default), got %d", svc.config.HintLength)
+	}
+}
+
+func TestCreateKey_WithDefaultTTL(t *testing.T) {
+	s := testutil.SetupPostgres(t)
+	cfg := &Config{
+		Prefix:     "sk_test",
+		KeyLength:  32,
+		HintLength: 4,
+		DefaultTTL: 1 * time.Hour, // Set default TTL
+	}
+	svc := NewService(cfg, s)
+	ctx := context.Background()
+
+	// Create key without explicit TTL - should use default
+	result, err := svc.CreateKey(ctx, "user-123", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ExpiresAt == nil {
+		t.Error("expected ExpiresAt to be set from DefaultTTL")
+	} else {
+		diff := time.Until(*result.ExpiresAt)
+		if diff < 59*time.Minute || diff > 61*time.Minute {
+			t.Errorf("expected expiration ~1 hour from now, got %v", diff)
+		}
+	}
+}
+
+func TestParseKey_EdgeCases(t *testing.T) {
+	tests := []struct {
+		name        string
+		rawKey      string
+		expectError bool
+	}{
+		{"empty key", "", true},
+		{"no separator", "invalidkey", true},
+		{"empty prefix", ".abc123", true},
+		{"empty encoded part", "sk_test.", true},
+		{"invalid base64", "sk_test.!!!invalid!!!", true},
+		{"valid key", "sk.YWJjZGVm", false}, // "abcdef" encoded
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, _, err := parseKey(tt.rawKey)
+			if tt.expectError && err == nil {
+				t.Error("expected error, got nil")
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+func TestGetHint(t *testing.T) {
+	tests := []struct {
+		input    string
+		n        int
+		expected string
+	}{
+		{"abcdefgh", 4, "efgh"},
+		{"ab", 4, "ab"},     // String shorter than n
+		{"abcd", 4, "abcd"}, // String exactly n
+		{"", 4, ""},         // Empty string
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := getHint(tt.input, tt.n)
+			if result != tt.expected {
+				t.Errorf("getHint(%q, %d) = %q, want %q", tt.input, tt.n, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestFormatKey(t *testing.T) {
+	randomBytes := []byte("test")
+	result := formatKey("sk_live", randomBytes)
+
+	if !strings.HasPrefix(result, "sk_live.") {
+		t.Errorf("expected key to start with 'sk_live.', got %q", result)
+	}
+}
+
+func TestEncodeKey(t *testing.T) {
+	randomBytes := []byte("hello")
+	encoded := encodeKey(randomBytes)
+
+	// Should be base64url encoded
+	if encoded == "" {
+		t.Error("expected non-empty encoded string")
+	}
+	// "hello" base64url encoded is "aGVsbG8"
+	if encoded != "aGVsbG8" {
+		t.Errorf("expected 'aGVsbG8', got %q", encoded)
+	}
+}
+
+func TestValidateKeyWithScope_InvalidKey(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	// Try to validate an invalid key with scope
+	_, err := svc.ValidateKeyWithScope(ctx, "invalid.key", "read:users")
+	if err == nil {
+		t.Error("expected error for invalid key")
+	}
+}

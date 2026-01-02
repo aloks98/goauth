@@ -36,6 +36,24 @@ func TestStandardClaims_GetJTI(t *testing.T) {
 	}
 }
 
+func TestStandardClaims_GetIssuedAt(t *testing.T) {
+	now := time.Now()
+	claims := &StandardClaims{IssuedAt: now.Unix()}
+	got := claims.GetIssuedAt()
+	if got.Unix() != now.Unix() {
+		t.Errorf("GetIssuedAt() = %v, want %v", got.Unix(), now.Unix())
+	}
+}
+
+func TestStandardClaims_GetExpiresAt(t *testing.T) {
+	future := time.Now().Add(time.Hour)
+	claims := &StandardClaims{ExpiresAt: future.Unix()}
+	got := claims.GetExpiresAt()
+	if got.Unix() != future.Unix() {
+		t.Errorf("GetExpiresAt() = %v, want %v", got.Unix(), future.Unix())
+	}
+}
+
 func TestStandardClaims_IsExpired(t *testing.T) {
 	tests := []struct {
 		name      string

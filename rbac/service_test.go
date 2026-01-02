@@ -472,3 +472,124 @@ func TestEqualPermissions(t *testing.T) {
 		})
 	}
 }
+
+func TestService_SetPermissions_ExistingUser(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	// First assign a role
+	svc.AssignRole(ctx, "user-123", "viewer")
+	perms1, _ := svc.GetUserPermissions(ctx, "user-123")
+	initialVersion := perms1.PermissionVersion
+
+	// Set new permissions - should preserve base role
+	if err := svc.SetPermissions(ctx, "user-123", []string{"custom:perm"}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	perms, _ := svc.GetUserPermissions(ctx, "user-123")
+
+	// Should be custom label but preserve base role
+	if perms.RoleLabel != "custom" {
+		t.Errorf("expected role label 'custom', got %s", perms.RoleLabel)
+	}
+	if perms.BaseRole != "viewer" {
+		t.Errorf("expected base role 'viewer', got %s", perms.BaseRole)
+	}
+	// Version should be incremented
+	if perms.PermissionVersion <= initialVersion {
+		t.Errorf("expected version > %d, got %d", initialVersion, perms.PermissionVersion)
+	}
+}
+
+func TestService_RemovePermissions_NonexistentUser(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	// Should not error when removing from nonexistent user
+	err := svc.RemovePermissions(ctx, "nonexistent", []string{"some:perm"})
+	if err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
+}
+
+func TestService_HasAllPermissions_NoUser(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	has, err := svc.HasAllPermissions(ctx, "nonexistent", []string{"any:perm"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if has {
+		t.Error("nonexistent user should not have all permissions")
+	}
+}
+
+func TestService_HasAnyPermission_NoUser(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	has, err := svc.HasAnyPermission(ctx, "nonexistent", []string{"any:perm"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if has {
+		t.Error("nonexistent user should not have any permissions")
+	}
+}
+
+func TestService_ResetToRole_NonexistentUser(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	err := svc.ResetToRole(ctx, "nonexistent")
+	if err != ErrRoleNotFound {
+		t.Errorf("expected ErrRoleNotFound, got %v", err)
+	}
+}
+
+func TestService_AddPermissions_Deduplication(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	// Start with some permissions
+	svc.SetPermissions(ctx, "user-123", []string{"perm:a", "perm:b"})
+
+	// Add permissions including duplicates
+	err := svc.AddPermissions(ctx, "user-123", []string{"perm:b", "perm:c", "perm:c"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	perms, _ := svc.GetUserPermissions(ctx, "user-123")
+
+	// Should have exactly 3 unique permissions
+	if len(perms.Permissions) != 3 {
+		t.Errorf("expected 3 permissions (deduplicated), got %d", len(perms.Permissions))
+	}
+}
+
+func TestService_AddPermissions_PreservesRoleIfMatch(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	// Assign viewer role (users:read, posts:read)
+	svc.AssignRole(ctx, "user-123", "viewer")
+
+	// Add a permission that's already included (should keep role label)
+	err := svc.AddPermissions(ctx, "user-123", []string{"users:read"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	perms, _ := svc.GetUserPermissions(ctx, "user-123")
+
+	// Viewer role already has users:read and posts:read
+	// Adding users:read again shouldn't change the permissions
+	// The role label could stay as "viewer" since permissions match
+	// (this tests the equalPermissions branch in AddPermissions)
+	if perms.BaseRole != "viewer" {
+		t.Errorf("expected base role 'viewer', got %s", perms.BaseRole)
+	}
+}

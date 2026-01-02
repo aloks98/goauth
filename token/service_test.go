@@ -2,10 +2,14 @@ package token
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
+
 	"github.com/aloks98/goauth/internal/testutil"
+	"github.com/aloks98/goauth/store"
 )
 
 func newTestService(t *testing.T) *Service {
@@ -432,5 +436,341 @@ func TestRevokeTokenFamily(t *testing.T) {
 	_, err = svc.ValidateRefreshToken(ctx, result.Token)
 	if err == nil {
 		t.Error("expected error for revoked family")
+	}
+}
+
+func TestGetCurrentPermissionVersion_Cache(t *testing.T) {
+	s := testutil.SetupPostgres(t)
+	cfg := &Config{
+		Secret:                 "this-is-a-32-character-secret!!!",
+		SigningMethod:          "HS256",
+		AccessTokenTTL:         15 * time.Minute,
+		RefreshTokenTTL:        7 * 24 * time.Hour,
+		PermissionVersionCheck: true,
+		PermissionCacheTTL:     100 * time.Millisecond, // Short TTL for testing
+	}
+	svc := NewService(cfg, s)
+	ctx := context.Background()
+
+	// Store permissions for user
+	err := s.SaveUserPermissions(ctx, &store.UserPermissions{
+		UserID:            "cache-test-user",
+		RoleLabel:         "user",
+		Permissions:       []string{"read"},
+		PermissionVersion: 5,
+	})
+	if err != nil {
+		t.Fatalf("failed to set permissions: %v", err)
+	}
+
+	// First call - cache miss, fetches from store
+	version, err := svc.getCurrentPermissionVersion(ctx, "cache-test-user")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if version != 5 {
+		t.Errorf("expected version 5, got %d", version)
+	}
+
+	// Update permissions in store directly
+	err = s.SaveUserPermissions(ctx, &store.UserPermissions{
+		UserID:            "cache-test-user",
+		RoleLabel:         "user",
+		Permissions:       []string{"read", "write"},
+		PermissionVersion: 10,
+	})
+	if err != nil {
+		t.Fatalf("failed to update permissions: %v", err)
+	}
+
+	// Second call - cache hit, should return old version
+	version, err = svc.getCurrentPermissionVersion(ctx, "cache-test-user")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if version != 5 {
+		t.Errorf("expected cached version 5, got %d", version)
+	}
+
+	// Wait for cache to expire
+	time.Sleep(150 * time.Millisecond)
+
+	// Third call - cache expired, should fetch new version
+	version, err = svc.getCurrentPermissionVersion(ctx, "cache-test-user")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if version != 10 {
+		t.Errorf("expected new version 10, got %d", version)
+	}
+}
+
+func TestGetCurrentPermissionVersion_NilPermissions(t *testing.T) {
+	s := testutil.SetupPostgres(t)
+	cfg := &Config{
+		Secret:                 "this-is-a-32-character-secret!!!",
+		SigningMethod:          "HS256",
+		AccessTokenTTL:         15 * time.Minute,
+		RefreshTokenTTL:        7 * 24 * time.Hour,
+		PermissionVersionCheck: true,
+	}
+	svc := NewService(cfg, s)
+	ctx := context.Background()
+
+	// User with no permissions - should return 0
+	version, err := svc.getCurrentPermissionVersion(ctx, "nonexistent-user")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if version != 0 {
+		t.Errorf("expected version 0 for nonexistent user, got %d", version)
+	}
+}
+
+func TestInvalidateAllPermissionCache(t *testing.T) {
+	s := testutil.SetupPostgres(t)
+	cfg := &Config{
+		Secret:                 "this-is-a-32-character-secret!!!",
+		SigningMethod:          "HS256",
+		AccessTokenTTL:         15 * time.Minute,
+		RefreshTokenTTL:        7 * 24 * time.Hour,
+		PermissionVersionCheck: true,
+		PermissionCacheTTL:     10 * time.Minute, // Long TTL
+	}
+	svc := NewService(cfg, s)
+	ctx := context.Background()
+
+	// Set permissions for multiple users
+	for _, userID := range []string{"user-1", "user-2", "user-3"} {
+		err := s.SaveUserPermissions(ctx, &store.UserPermissions{
+			UserID:            userID,
+			RoleLabel:         "user",
+			Permissions:       []string{"read"},
+			PermissionVersion: 1,
+		})
+		if err != nil {
+			t.Fatalf("failed to set permissions: %v", err)
+		}
+		// Populate cache
+		_, err = svc.getCurrentPermissionVersion(ctx, userID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	}
+
+	// Update all users to version 2
+	for _, userID := range []string{"user-1", "user-2", "user-3"} {
+		err := s.SaveUserPermissions(ctx, &store.UserPermissions{
+			UserID:            userID,
+			RoleLabel:         "user",
+			Permissions:       []string{"read", "write"},
+			PermissionVersion: 2,
+		})
+		if err != nil {
+			t.Fatalf("failed to update permissions: %v", err)
+		}
+	}
+
+	// Verify cache still returns old version
+	version, _ := svc.getCurrentPermissionVersion(ctx, "user-1")
+	if version != 1 {
+		t.Errorf("expected cached version 1, got %d", version)
+	}
+
+	// Invalidate all cache entries
+	svc.InvalidateAllPermissionCache()
+
+	// Now should get new version
+	for _, userID := range []string{"user-1", "user-2", "user-3"} {
+		version, err := svc.getCurrentPermissionVersion(ctx, userID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if version != 2 {
+			t.Errorf("expected version 2 for %s, got %d", userID, version)
+		}
+	}
+}
+
+func TestValidateAccessToken_PermissionVersionMismatch(t *testing.T) {
+	s := testutil.SetupPostgres(t)
+	cfg := &Config{
+		Secret:                 "this-is-a-32-character-secret!!!",
+		SigningMethod:          "HS256",
+		AccessTokenTTL:         15 * time.Minute,
+		RefreshTokenTTL:        7 * 24 * time.Hour,
+		PermissionVersionCheck: true,
+	}
+	svc := NewService(cfg, s)
+	ctx := context.Background()
+
+	// Set initial permissions
+	err := s.SaveUserPermissions(ctx, &store.UserPermissions{
+		UserID:            "perm-user",
+		RoleLabel:         "user",
+		Permissions:       []string{"read"},
+		PermissionVersion: 1,
+	})
+	if err != nil {
+		t.Fatalf("failed to set permissions: %v", err)
+	}
+
+	// Generate token with version 1
+	pair, err := svc.GenerateTokenPair(ctx, "perm-user", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Verify token is valid
+	_, err = svc.ValidateAccessToken(ctx, pair.AccessToken)
+	if err != nil {
+		t.Fatalf("token should be valid: %v", err)
+	}
+
+	// Update permissions (bumps version)
+	svc.InvalidatePermissionCache("perm-user")
+	err = s.SaveUserPermissions(ctx, &store.UserPermissions{
+		UserID:            "perm-user",
+		RoleLabel:         "admin",
+		Permissions:       []string{"read", "write", "delete"},
+		PermissionVersion: 2,
+	})
+	if err != nil {
+		t.Fatalf("failed to update permissions: %v", err)
+	}
+
+	// Token should now be invalid due to version mismatch
+	_, err = svc.ValidateAccessToken(ctx, pair.AccessToken)
+	if err != ErrPermissionsChanged {
+		t.Errorf("expected ErrPermissionsChanged, got %v", err)
+	}
+}
+
+func TestMapJWTError(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    error
+		expected error
+	}{
+		{"nil error", nil, nil},
+		{"expired", jwt.ErrTokenExpired, ErrTokenExpired},
+		{"not yet valid", jwt.ErrTokenNotValidYet, ErrTokenNotYetValid},
+		{"malformed", jwt.ErrTokenMalformed, ErrTokenMalformed},
+		{"signature invalid", jwt.ErrSignatureInvalid, ErrTokenInvalidSig},
+		{"token signature invalid", jwt.ErrTokenSignatureInvalid, ErrTokenInvalidSig},
+		{"unverifiable", jwt.ErrTokenUnverifiable, ErrTokenInvalidSig},
+		{"unknown error", errors.New("some random error"), ErrTokenMalformed},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := mapJWTError(tt.input)
+			if result != tt.expected {
+				t.Errorf("expected %v, got %v", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestParseAndValidateJWT_WrongSigningMethod(t *testing.T) {
+	// Create service with HS256
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	// Generate a valid token
+	pair, err := svc.GenerateTokenPair(ctx, "user-123", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Create new service with RS256 (but no keys, so validation would fail differently)
+	s := testutil.SetupPostgres(t)
+	rsaCfg := &Config{
+		Secret:          "this-is-a-32-character-secret!!!",
+		SigningMethod:   "RS256",
+		AccessTokenTTL:  15 * time.Minute,
+		RefreshTokenTTL: 7 * 24 * time.Hour,
+	}
+	rsaSvc := NewService(rsaCfg, s)
+
+	// Try to validate HMAC token with RSA service - should fail with invalid signature
+	_, err = rsaSvc.ValidateAccessToken(ctx, pair.AccessToken)
+	if err == nil {
+		t.Error("expected error when validating HMAC token with RSA service")
+	}
+}
+
+func TestGenerateTokenPair_WithPermissionVersion(t *testing.T) {
+	s := testutil.SetupPostgres(t)
+	cfg := &Config{
+		Secret:                 "this-is-a-32-character-secret!!!",
+		SigningMethod:          "HS256",
+		AccessTokenTTL:         15 * time.Minute,
+		RefreshTokenTTL:        7 * 24 * time.Hour,
+		PermissionVersionCheck: true,
+	}
+	svc := NewService(cfg, s)
+	ctx := context.Background()
+
+	// Set permissions with version 5
+	err := s.SaveUserPermissions(ctx, &store.UserPermissions{
+		UserID:            "versioned-user",
+		RoleLabel:         "editor",
+		Permissions:       []string{"read", "write"},
+		PermissionVersion: 5,
+	})
+	if err != nil {
+		t.Fatalf("failed to set permissions: %v", err)
+	}
+
+	// Generate tokens
+	pair, err := svc.GenerateTokenPair(ctx, "versioned-user", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Validate and check version in claims
+	claims, err := svc.ValidateAccessToken(ctx, pair.AccessToken)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if claims.PermissionVersion != 5 {
+		t.Errorf("expected permission version 5, got %d", claims.PermissionVersion)
+	}
+}
+
+func TestGetCurrentPermissionVersion_DefaultCacheTTL(t *testing.T) {
+	s := testutil.SetupPostgres(t)
+	cfg := &Config{
+		Secret:                 "this-is-a-32-character-secret!!!",
+		SigningMethod:          "HS256",
+		AccessTokenTTL:         15 * time.Minute,
+		RefreshTokenTTL:        7 * 24 * time.Hour,
+		PermissionVersionCheck: true,
+		// PermissionCacheTTL not set - should use default 30 seconds
+	}
+	svc := NewService(cfg, s)
+	ctx := context.Background()
+
+	// Set permissions
+	err := s.SaveUserPermissions(ctx, &store.UserPermissions{
+		UserID:            "default-ttl-user",
+		RoleLabel:         "user",
+		Permissions:       []string{"read"},
+		PermissionVersion: 1,
+	})
+	if err != nil {
+		t.Fatalf("failed to set permissions: %v", err)
+	}
+
+	// Call twice - should work without panic (tests default TTL path)
+	_, err = svc.getCurrentPermissionVersion(ctx, "default-ttl-user")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	_, err = svc.getCurrentPermissionVersion(ctx, "default-ttl-user")
+	if err != nil {
+		t.Fatalf("unexpected error on cached call: %v", err)
 	}
 }
