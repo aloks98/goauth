@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/aloks98/goauth/store/memory"
+	"github.com/aloks98/goauth/internal/testutil"
 )
 
 func newTestConfig() *Config {
@@ -38,7 +38,7 @@ func newTestConfig() *Config {
 func newTestService(t *testing.T) *Service {
 	t.Helper()
 	cfg := newTestConfig()
-	s := memory.New()
+	s := testutil.SetupPostgres(t)
 	svc, err := NewService(cfg, s)
 	if err != nil {
 		t.Fatalf("failed to create service: %v", err)
@@ -48,7 +48,7 @@ func newTestService(t *testing.T) *Service {
 
 func TestNewService(t *testing.T) {
 	cfg := newTestConfig()
-	s := memory.New()
+	s := testutil.SetupPostgres(t)
 
 	svc, err := NewService(cfg, s)
 	if err != nil {
@@ -60,7 +60,7 @@ func TestNewService(t *testing.T) {
 }
 
 func TestNewService_NilConfig(t *testing.T) {
-	s := memory.New()
+	s := testutil.SetupPostgres(t)
 	_, err := NewService(nil, s)
 	if err != ErrRBACNotEnabled {
 		t.Errorf("expected ErrRBACNotEnabled, got %v", err)
@@ -78,7 +78,7 @@ func TestNewService_InvalidConfig(t *testing.T) {
 			},
 		},
 	}
-	s := memory.New()
+	s := testutil.SetupPostgres(t)
 	_, err := NewService(cfg, s)
 	if err == nil {
 		t.Error("expected error for invalid config")

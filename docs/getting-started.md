@@ -60,17 +60,24 @@ import (
     "log"
 
     "github.com/aloks98/goauth"
-    "github.com/aloks98/goauth/store/memory"
+    "github.com/aloks98/goauth/store/sql"
 )
 
 func main() {
-    // Create a store (use sql.NewPostgres for production)
-    store := memory.New()
+    // Create a SQL store (PostgreSQL or MySQL)
+    store, err := sql.New(&sql.Config{
+        Dialect: sql.PostgreSQL,
+        DSN:     "postgres://user:pass@localhost/myapp?sslmode=disable",
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
 
     // Create the auth instance
     auth, err := goauth.New[*MyClaims](
         goauth.WithSecret("your-256-bit-secret-key-minimum-32-chars"),
         goauth.WithStore(store),
+        goauth.WithAutoMigrate(true), // Create tables on first run
     )
     if err != nil {
         log.Fatal(err)

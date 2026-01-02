@@ -46,6 +46,16 @@ type Config struct {
 
 	// PermissionVersionCheck enables permission version validation.
 	PermissionVersionCheck bool
+
+	// PermissionCacheTTL is how long permission versions are cached.
+	// Defaults to 30 seconds if not set.
+	PermissionCacheTTL time.Duration
+}
+
+// permissionCacheEntry holds a cached permission version with expiry.
+type permissionCacheEntry struct {
+	version   int
+	expiresAt time.Time
 }
 
 // Service handles token generation, validation, and management.
@@ -188,18 +198,53 @@ func (s *Service) RevokeAllUserTokens(ctx context.Context, userID string) error 
 }
 
 // getCurrentPermissionVersion gets the current permission version for a user.
+// Uses caching to reduce database lookups.
 func (s *Service) getCurrentPermissionVersion(ctx context.Context, userID string) (int, error) {
+	// Check cache first
+	if cached, ok := s.permissionCache.Load(userID); ok {
+		entry := cached.(*permissionCacheEntry)
+		if time.Now().Before(entry.expiresAt) {
+			return entry.version, nil
+		}
+		// Cache expired, delete it
+		s.permissionCache.Delete(userID)
+	}
+
+	// Fetch from store
 	perms, err := s.store.GetUserPermissions(ctx, userID)
 	if err != nil {
 		return 0, err
 	}
-	if perms == nil {
-		return 0, nil
+
+	version := 0
+	if perms != nil {
+		version = perms.PermissionVersion
 	}
-	return perms.PermissionVersion, nil
+
+	// Cache the result
+	ttl := s.config.PermissionCacheTTL
+	if ttl <= 0 {
+		ttl = 30 * time.Second // Default TTL
+	}
+	s.permissionCache.Store(userID, &permissionCacheEntry{
+		version:   version,
+		expiresAt: time.Now().Add(ttl),
+	})
+
+	return version, nil
 }
 
 // InvalidatePermissionCache clears the cached permission version for a user.
+// Call this when a user's permissions are modified.
 func (s *Service) InvalidatePermissionCache(userID string) {
 	s.permissionCache.Delete(userID)
+}
+
+// InvalidateAllPermissionCache clears the entire permission cache.
+// Call this when role templates are updated.
+func (s *Service) InvalidateAllPermissionCache() {
+	s.permissionCache.Range(func(key, value any) bool {
+		s.permissionCache.Delete(key)
+		return true
+	})
 }

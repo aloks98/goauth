@@ -161,12 +161,6 @@ store, err := redis.New(redis.Config{
 })
 ```
 
-### Memory Store (Testing)
-
-```go
-store := memory.New()
-```
-
 ## Configuration Options
 
 ```go

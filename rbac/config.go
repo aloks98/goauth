@@ -49,16 +49,46 @@ var (
 	ErrDuplicateRole           = errors.New("duplicate role key")
 	ErrRolePermissionNotFound  = errors.New("role references undefined permission")
 	ErrEmptyRoleKey            = errors.New("role key cannot be empty")
+	ErrInvalidConfigPath       = errors.New("invalid config file path")
 )
 
 // LoadFromFile loads RBAC configuration from a YAML or JSON file.
+// The path must be an absolute path or a relative path without directory traversal.
 func LoadFromFile(path string) (*Config, error) {
-	data, err := os.ReadFile(path) //nolint:gosec // path is provided by application config
+	// Validate path to prevent directory traversal attacks
+	if err := validateConfigPath(path); err != nil {
+		return nil, err
+	}
+
+	data, err := os.ReadFile(path) //nolint:gosec // path is validated above
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
 	return LoadFromBytes(data, filepath.Ext(path))
+}
+
+// validateConfigPath validates the config file path for security.
+func validateConfigPath(path string) error {
+	if path == "" {
+		return fmt.Errorf("%w: path cannot be empty", ErrInvalidConfigPath)
+	}
+
+	// Clean the path to resolve any . or .. components
+	cleanPath := filepath.Clean(path)
+
+	// Check for directory traversal attempts
+	if strings.Contains(cleanPath, "..") {
+		return fmt.Errorf("%w: path contains directory traversal", ErrInvalidConfigPath)
+	}
+
+	// Ensure the path has a valid extension
+	ext := strings.ToLower(filepath.Ext(cleanPath))
+	if ext != ".yaml" && ext != ".yml" && ext != ".json" {
+		return fmt.Errorf("%w: path must have .yaml, .yml, or .json extension", ErrInvalidConfigPath)
+	}
+
+	return nil
 }
 
 // LoadFromBytes parses RBAC configuration from raw bytes.

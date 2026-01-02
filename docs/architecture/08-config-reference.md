@@ -20,19 +20,18 @@ Sets the data store (required for stateful operations).
 
 ```go
 // PostgreSQL
-goauth.WithStore(sql.Postgres("postgres://user:pass@localhost/db"))
+store, _ := sql.New(&sql.Config{
+    Dialect: sql.PostgreSQL,
+    DSN:     "postgres://user:pass@localhost:5432/db?sslmode=disable",
+})
+goauth.WithStore(store)
 
 // MySQL
-goauth.WithStore(sql.MySQL("user:pass@tcp(localhost:3306)/db"))
-
-// SQLite
-goauth.WithStore(sql.SQLite("./data/auth.db"))
-
-// Redis
-goauth.WithStore(redis.New("localhost:6379", "", 0))
-
-// Memory (testing only)
-goauth.WithStore(memory.New())
+store, _ := sql.New(&sql.Config{
+    Dialect: sql.MySQL,
+    DSN:     "user:pass@tcp(localhost:3306)/db?parseTime=true",
+})
+goauth.WithStore(store)
 ```
 
 ### RBAC Configuration (Optional)

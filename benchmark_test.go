@@ -4,12 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/aloks98/goauth/store/memory"
+	"github.com/aloks98/goauth/internal/testutil"
 )
 
 func BenchmarkGenerateTokenPair(b *testing.B) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(b)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -33,8 +32,7 @@ func BenchmarkGenerateTokenPair(b *testing.B) {
 }
 
 func BenchmarkValidateAccessToken(b *testing.B) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(b)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -61,8 +59,7 @@ func BenchmarkValidateAccessToken(b *testing.B) {
 }
 
 func BenchmarkRefreshTokens(b *testing.B) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(b)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -89,8 +86,7 @@ func BenchmarkRefreshTokens(b *testing.B) {
 }
 
 func BenchmarkCreateAPIKey(b *testing.B) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(b)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -113,8 +109,7 @@ func BenchmarkCreateAPIKey(b *testing.B) {
 }
 
 func BenchmarkValidateAPIKey(b *testing.B) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(b)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),

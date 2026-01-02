@@ -7,11 +7,15 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/aloks98/goauth"
 	"github.com/aloks98/goauth/middleware"
-	"github.com/aloks98/goauth/store/memory"
+	sqlstore "github.com/aloks98/goauth/store/sql"
 	"github.com/aloks98/goauth/token"
+
+	// PostgreSQL driver
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 // Claims defines custom JWT claims.
@@ -52,9 +56,26 @@ func (a *authAdapter) HasAnyPermission(ctx context.Context, userID string, permi
 }
 
 func main() {
-	// Create store
-	store := memory.New()
+	// Get database DSN from environment or use default
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		dsn = "postgres://goauth:goauth@localhost:5432/goauth?sslmode=disable"
+	}
+
+	// Create SQL store
+	store, err := sqlstore.New(&sqlstore.Config{
+		Dialect: sqlstore.PostgreSQL,
+		DSN:     dsn,
+	})
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
 	defer store.Close()
+
+	// Run migrations
+	if err := store.Migrate(context.Background()); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
 
 	// Initialize goauth with RBAC
 	auth, err := goauth.New[*Claims](

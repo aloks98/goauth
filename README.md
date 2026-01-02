@@ -35,7 +35,9 @@ import (
     "log"
 
     "github.com/aloks98/goauth"
-    "github.com/aloks98/goauth/store/memory"
+    "github.com/aloks98/goauth/store/sql"
+
+    _ "github.com/jackc/pgx/v5/stdlib" // PostgreSQL driver
 )
 
 // Define your custom claims
@@ -45,10 +47,25 @@ type Claims struct {
 }
 
 func main() {
+    // Create SQL store
+    store, err := sql.New(&sql.Config{
+        Dialect: sql.PostgreSQL,
+        DSN:     "postgres://user:pass@localhost:5432/mydb?sslmode=disable",
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer store.Close()
+
+    // Run migrations
+    if err := store.Migrate(context.Background()); err != nil {
+        log.Fatal(err)
+    }
+
     // Create auth instance
     auth, err := goauth.New[*Claims](
         goauth.WithSecret("your-256-bit-secret-key-here"),
-        goauth.WithStore(memory.New()),
+        goauth.WithStore(store),
     )
     if err != nil {
         log.Fatal(err)
@@ -58,8 +75,8 @@ func main() {
     ctx := context.Background()
 
     // Generate token pair for a user
-    tokens, err := auth.GenerateTokenPair(ctx, "user-123", &Claims{
-        Email: "user@example.com",
+    tokens, err := auth.GenerateTokenPair(ctx, "user-123", map[string]any{
+        "email": "user@example.com",
     })
     if err != nil {
         log.Fatal(err)
@@ -71,7 +88,7 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
-    log.Printf("User ID: %s, Email: %s", claims.UserID, claims.Email)
+    log.Printf("User ID: %s", claims.UserID)
 
     // Refresh tokens
     newTokens, err := auth.RefreshTokens(ctx, tokens.RefreshToken)
@@ -110,6 +127,8 @@ import (
 
     "github.com/aloks98/goauth"
     "github.com/aloks98/goauth/store/sql"
+
+    _ "github.com/jackc/pgx/v5/stdlib" // PostgreSQL driver
 )
 
 type Claims struct {
@@ -118,9 +137,18 @@ type Claims struct {
 }
 
 func main() {
-    // Create store
-    store, err := sql.NewPostgres("postgres://user:pass@localhost/mydb?sslmode=disable")
+    // Create SQL store
+    store, err := sql.New(&sql.Config{
+        Dialect: sql.PostgreSQL,
+        DSN:     "postgres://user:pass@localhost:5432/mydb?sslmode=disable",
+    })
     if err != nil {
+        log.Fatal(err)
+    }
+    defer store.Close()
+
+    // Run migrations
+    if err := store.Migrate(context.Background()); err != nil {
         log.Fatal(err)
     }
 
@@ -164,11 +192,16 @@ func main() {
 package main
 
 import (
+    "context"
+    "log"
     "net/http"
 
     "github.com/aloks98/goauth"
     "github.com/aloks98/goauth/middleware"
-    "github.com/aloks98/goauth/store/memory"
+    "github.com/aloks98/goauth/store/sql"
+    "github.com/aloks98/goauth/token"
+
+    _ "github.com/jackc/pgx/v5/stdlib"
 )
 
 type Claims struct {
@@ -176,9 +209,20 @@ type Claims struct {
 }
 
 func main() {
+    // Create SQL store
+    store, err := sql.New(&sql.Config{
+        Dialect: sql.PostgreSQL,
+        DSN:     "postgres://user:pass@localhost:5432/mydb?sslmode=disable",
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer store.Close()
+    store.Migrate(context.Background())
+
     auth, _ := goauth.New[*Claims](
         goauth.WithSecret("your-secret"),
-        goauth.WithStore(memory.New()),
+        goauth.WithStore(store),
     )
 
     // Create adapter for middleware
@@ -204,15 +248,19 @@ type AuthAdapter struct {
     auth *goauth.Auth[*Claims]
 }
 
-func (a *AuthAdapter) ValidateToken(ctx context.Context, token string) (interface{}, error) {
-    return a.auth.ValidateAccessToken(ctx, token)
+func (a *AuthAdapter) ValidateAccessToken(ctx context.Context, tokenStr string) (interface{}, error) {
+    return a.auth.ValidateAccessToken(ctx, tokenStr)
 }
 
 func (a *AuthAdapter) ExtractUserID(claims interface{}) string {
-    if c, ok := claims.(*Claims); ok {
+    if c, ok := claims.(*token.Claims); ok {
         return c.UserID
     }
     return ""
+}
+
+func (a *AuthAdapter) ExtractPermissions(claims interface{}) []string {
+    return nil
 }
 ```
 
@@ -285,25 +333,30 @@ valid := auth.VerifyPassword("user-password", hash)
 
 ## Store Backends
 
-**Memory (for testing):**
-```go
-import "github.com/aloks98/goauth/store/memory"
-
-store := memory.New()
-```
-
 **PostgreSQL:**
 ```go
-import "github.com/aloks98/goauth/store/sql"
+import (
+    "github.com/aloks98/goauth/store/sql"
+    _ "github.com/jackc/pgx/v5/stdlib"
+)
 
-store, err := sql.NewPostgres("postgres://user:pass@localhost/db?sslmode=disable")
+store, err := sql.New(&sql.Config{
+    Dialect: sql.PostgreSQL,
+    DSN:     "postgres://user:pass@localhost:5432/db?sslmode=disable",
+})
 ```
 
 **MySQL:**
 ```go
-import "github.com/aloks98/goauth/store/sql"
+import (
+    "github.com/aloks98/goauth/store/sql"
+    _ "github.com/go-sql-driver/mysql"
+)
 
-store, err := sql.NewMySQL("user:pass@tcp(localhost:3306)/db")
+store, err := sql.New(&sql.Config{
+    Dialect: sql.MySQL,
+    DSN:     "user:pass@tcp(localhost:3306)/db?parseTime=true",
+})
 ```
 
 ## Configuration Options

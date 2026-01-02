@@ -30,7 +30,7 @@ go get github.com/aloks98/goauth
 ```go
 import (
     "github.com/aloks98/goauth"
-    "github.com/aloks98/goauth/store/memory"
+    "github.com/aloks98/goauth/store/sql"
 )
 
 // Define your custom claims (must embed StandardClaims)
@@ -39,10 +39,20 @@ type MyClaims struct {
     Email string `json:"email"`
 }
 
+// Create SQL store
+store, err := sql.New(&sql.Config{
+    Dialect: sql.PostgreSQL,
+    DSN:     "postgres://user:pass@localhost/myapp?sslmode=disable",
+})
+if err != nil {
+    log.Fatal(err)
+}
+
 // Create auth instance
 auth, err := goauth.New[*MyClaims](
     goauth.WithSecret("your-256-bit-secret-key-here"),
-    goauth.WithStore(memory.New()),
+    goauth.WithStore(store),
+    goauth.WithAutoMigrate(true),
 )
 if err != nil {
     log.Fatal(err)
@@ -872,29 +882,28 @@ http.Handle("/protected", authMW(myHandler))
 
 ## Store Interface
 
-GoAuth requires a store implementation for persistence.
+GoAuth requires a SQL store implementation for persistence.
 
 ### Available Stores
-
-**Memory (for testing):**
-```go
-import "github.com/aloks98/goauth/store/memory"
-
-store := memory.New()
-```
 
 **PostgreSQL:**
 ```go
 import "github.com/aloks98/goauth/store/sql"
 
-store, err := sql.NewPostgres("postgres://user:pass@localhost/db?sslmode=disable")
+store, err := sql.New(&sql.Config{
+    Dialect: sql.PostgreSQL,
+    DSN:     "postgres://user:pass@localhost/db?sslmode=disable",
+})
 ```
 
 **MySQL:**
 ```go
 import "github.com/aloks98/goauth/store/sql"
 
-store, err := sql.NewMySQL("user:pass@tcp(localhost:3306)/db")
+store, err := sql.New(&sql.Config{
+    Dialect: sql.MySQL,
+    DSN:     "user:pass@tcp(localhost:3306)/db?parseTime=true",
+})
 ```
 
 ### Store Interface

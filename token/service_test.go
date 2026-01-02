@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aloks98/goauth/store/memory"
+	"github.com/aloks98/goauth/internal/testutil"
 )
 
 func newTestService(t *testing.T) *Service {
 	t.Helper()
-	s := memory.New()
+	s := testutil.SetupPostgres(t)
 	cfg := &Config{
 		Secret:          "this-is-a-32-character-secret!!!", // 33 chars
 		SigningMethod:   "HS256",
@@ -38,7 +38,7 @@ func TestNewService(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := memory.New()
+			s := testutil.SetupPostgres(t)
 			cfg := &Config{
 				Secret:          "this-is-a-32-character-secret!!!",
 				SigningMethod:   tt.signingMethod,

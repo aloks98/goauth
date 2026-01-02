@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-GoAuth is a stateful authentication and authorization library for Go. It provides JWT tokens, refresh token rotation, API keys, and user-level RBAC.
+GoAuth is a stateful authentication and authorization library for Go. It provides JWT tokens, refresh token rotation, API keys, rate limiting, and user-level RBAC.
 
 ## Key Architecture Decisions
 
@@ -26,6 +26,7 @@ auth, _ := goauth.New[Claims](
 ```
 - JWT + refresh tokens ✅
 - API keys ✅
+- Rate limiting ✅
 - `Authenticate()` middleware ✅
 - `RequirePermission()` ❌ (returns ErrRBACNotEnabled)
 
@@ -56,10 +57,9 @@ goauth/
 ├── apikey/             # API key management
 ├── rbac/               # Permissions, roles, sync
 ├── store/              # Database adapters
-│   ├── memory/         # For testing
-│   └── sql/            # Postgres, MySQL
+│   └── sql/            # PostgreSQL, MySQL
 ├── middleware/         # HTTP framework adapters
-├── ratelimit/          # Optional rate limiting
+├── ratelimit/          # Rate limiting (see Rate Limiting section)
 ├── cleanup/            # Background workers
 └── internal/           # Private utilities
 ```
@@ -150,12 +150,93 @@ golangci-lint run
 - `golang.org/x/crypto` - cryptographic utilities
 - Database drivers as needed
 
-**Optional (for specific stores/middleware):**
+**Optional (for specific stores/middleware/ratelimit):**
 - `github.com/gofiber/fiber/v2`
 - `github.com/labstack/echo/v4`
 - `github.com/gin-gonic/gin`
 - `github.com/go-chi/chi/v5`
 - `github.com/jackc/pgx/v5`
+- `github.com/redis/go-redis/v9` - Redis rate limiting
+
+## Rate Limiting
+
+The `ratelimit/` package provides multiple rate limiting algorithms for both single-instance and distributed deployments.
+
+### In-Memory Limiters
+- **MemoryLimiter** - Fixed window algorithm, simple and efficient
+- **SlidingWindowLimiter** - Sliding window for more accurate rate limiting
+- **TokenBucketLimiter** - Token bucket algorithm, allows bursting
+
+### Redis Limiters (Distributed)
+- **RedisLimiter** - Sliding window using Lua scripts (atomic)
+- **RedisTokenBucketLimiter** - Token bucket with Redis backend
+- **RedisFixedWindowLimiter** - Simple fixed window with Redis
+
+### Usage
+```go
+// In-memory (single instance)
+limiter := ratelimit.NewMemoryLimiter(100, time.Minute) // 100 req/min
+
+// Redis (distributed)
+limiter := ratelimit.NewRedisLimiter(&ratelimit.RedisConfig{
+    Client: redisClient,
+    Rate:   100,
+    Window: time.Minute,
+})
+
+// Apply as middleware
+mux.Use(ratelimit.Middleware(limiter, nil))
+```
+
+## Signing Methods
+
+GoAuth supports multiple JWT signing algorithms:
+
+### HMAC (Symmetric)
+- **HS256** - HMAC-SHA256 (default)
+- **HS384** - HMAC-SHA384
+- **HS512** - HMAC-SHA512
+
+```go
+auth, _ := goauth.New[Claims](
+    goauth.WithSecret("your-256-bit-secret"),
+    goauth.WithSigningMethod(jwt.SigningMethodHS512),
+)
+```
+
+### RSA (Asymmetric)
+- **RS256** - RSA-SHA256
+- **RS384** - RSA-SHA384
+- **RS512** - RSA-SHA512
+
+```go
+auth, _ := goauth.New[Claims](
+    goauth.WithRSAKeys(privateKey, publicKey),
+    goauth.WithSigningMethod(jwt.SigningMethodRS256),
+)
+```
+
+## Build Tooling
+
+### Makefile
+```bash
+make test        # Run unit tests
+make test-cover  # Run tests with coverage
+make lint        # Run golangci-lint
+make build       # Build the library
+```
+
+### CI/CD
+GitHub Actions workflows in `.github/workflows/`:
+- Runs tests on push/PR
+- Linting with golangci-lint
+- Coverage reporting
+
+### Linting
+Configuration in `.golangci.yml` - run with:
+```bash
+golangci-lint run
+```
 
 ## Implementation Order
 
@@ -163,7 +244,7 @@ golangci-lint run
 2. **Phase 2**: Token service (JWT, refresh, blacklist)
 3. **Phase 3**: API keys
 4. **Phase 4**: RBAC (config, permissions, sync)
-5. **Phase 5**: Stores (memory, SQL)
+5. **Phase 5**: SQL Store (PostgreSQL, MySQL)
 6. **Phase 6**: Middleware adapters
 7. **Phase 7**: Rate limiting, cleanup
 8. **Phase 8**: Testing, docs, examples

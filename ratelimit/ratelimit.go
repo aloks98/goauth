@@ -4,7 +4,9 @@ package ratelimit
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -271,7 +273,8 @@ func Middleware(limiter Limiter, cfg *Config) func(http.Handler) http.Handler {
 			key := keyFunc(r)
 			allowed, err := limiter.Allow(r.Context(), key)
 			if err != nil {
-				// On error, allow the request but log would be appropriate
+				// Log the error but allow the request to proceed
+				log.Printf("[ratelimit] error checking rate limit for key %s: %v", key, err)
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -280,10 +283,14 @@ func Middleware(limiter Limiter, cfg *Config) func(http.Handler) http.Handler {
 				// Set rate limit headers if limiter supports it
 				if ml, ok := limiter.(*MemoryLimiter); ok {
 					resetAt := ml.GetResetTime(key)
-					w.Header().Set("X-RateLimit-Limit", string(rune(ml.rate)))
+					retryAfter := int(time.Until(resetAt).Seconds())
+					if retryAfter < 0 {
+						retryAfter = 0
+					}
+					w.Header().Set("X-RateLimit-Limit", strconv.Itoa(ml.rate))
 					w.Header().Set("X-RateLimit-Remaining", "0")
 					w.Header().Set("X-RateLimit-Reset", resetAt.Format(time.RFC3339))
-					w.Header().Set("Retry-After", string(rune(int(time.Until(resetAt).Seconds()))))
+					w.Header().Set("Retry-After", strconv.Itoa(retryAfter))
 
 					if cfg.ExceedHandler != nil {
 						cfg.ExceedHandler(w, r, resetAt)

@@ -28,6 +28,7 @@ import (
 
 	"github.com/aloks98/goauth/apikey"
 	"github.com/aloks98/goauth/cleanup"
+	"github.com/aloks98/goauth/ratelimit"
 	"github.com/aloks98/goauth/rbac"
 	"github.com/aloks98/goauth/store"
 	"github.com/aloks98/goauth/token"
@@ -44,6 +45,7 @@ type Auth[T Claims] struct {
 	rbacService   *rbac.Service
 	apiKeyService *apikey.Service
 	cleanupWorker *cleanup.Worker
+	rateLimiter   ratelimit.Limiter
 
 	// mu protects concurrent access
 	mu sync.RWMutex
@@ -65,7 +67,7 @@ func New[T Claims](opts ...Option) (*Auth[T], error) {
 
 	// Extract special options from registries
 	s := getStoreFromRegistry(cfg)
-	_ = getRateLimiterFromRegistry(cfg) // Will be used in Phase 7
+	rateLimitCfg := getRateLimiterFromRegistry(cfg)
 
 	// Validate configuration
 	if err := cfg.Validate(); err != nil {
@@ -97,6 +99,7 @@ func New[T Claims](opts ...Option) (*Auth[T], error) {
 		AccessTokenTTL:         cfg.AccessTokenTTL,
 		RefreshTokenTTL:        cfg.RefreshTokenTTL,
 		PermissionVersionCheck: cfg.PermissionVersionCheck,
+		PermissionCacheTTL:     cfg.PermissionCacheTTL,
 	}
 
 	// Handle RSA keys if present
@@ -159,6 +162,14 @@ func New[T Claims](opts ...Option) (*Auth[T], error) {
 		cleanupCfg.Interval = cfg.CleanupInterval
 		auth.cleanupWorker = cleanup.NewWorker(cleanupCfg)
 		auth.cleanupWorker.Start()
+	}
+
+	// Initialize rate limiter if configured
+	if rateLimitCfg != nil && rateLimitCfg.Enabled {
+		auth.rateLimiter = ratelimit.NewMemoryLimiter(
+			rateLimitCfg.RequestsPerWindow,
+			rateLimitCfg.WindowDuration,
+		)
 	}
 
 	return auth, nil
@@ -238,12 +249,22 @@ func (a *Auth[T]) Close() error {
 		a.cleanupWorker.Stop()
 	}
 
+	// Close rate limiter
+	if a.rateLimiter != nil {
+		_ = a.rateLimiter.Close()
+	}
+
 	// Close the store
 	if a.store != nil {
 		return a.store.Close()
 	}
 
 	return nil
+}
+
+// RateLimiter returns the configured rate limiter, or nil if not configured.
+func (a *Auth[T]) RateLimiter() ratelimit.Limiter {
+	return a.rateLimiter
 }
 
 // Ping verifies the store connection is alive.

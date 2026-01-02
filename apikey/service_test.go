@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aloks98/goauth/store/memory"
+	"github.com/aloks98/goauth/internal/testutil"
 )
 
 func newTestService(t *testing.T) *Service {
 	t.Helper()
-	s := memory.New()
+	s := testutil.SetupPostgres(t)
 	cfg := &Config{
 		Prefix:     "sk_test",
 		KeyLength:  32,
@@ -21,7 +21,7 @@ func newTestService(t *testing.T) *Service {
 }
 
 func TestNewService(t *testing.T) {
-	s := memory.New()
+	s := testutil.SetupPostgres(t)
 
 	// Test with nil config
 	svc := NewService(nil, s)

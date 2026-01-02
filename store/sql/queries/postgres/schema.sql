@@ -4,11 +4,11 @@ CREATE TABLE IF NOT EXISTS goauth_refresh_tokens (
     user_id VARCHAR(255) NOT NULL,
     family_id VARCHAR(64) NOT NULL,
     token_hash VARCHAR(64) NOT NULL,
-    issued_at TIMESTAMP NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    revoked_at TIMESTAMP,
+    issued_at TIMESTAMPTZ NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    revoked_at TIMESTAMPTZ,
     replaced_by VARCHAR(64),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON goauth_refresh_tokens(user_id);
@@ -19,7 +19,7 @@ CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires_at ON goauth_refresh_token
 CREATE TABLE IF NOT EXISTS goauth_blacklist (
     jti VARCHAR(64) PRIMARY KEY,
     expires_at BIGINT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_blacklist_expires_at ON goauth_blacklist(expires_at);
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS goauth_user_permissions (
     base_role VARCHAR(64),
     permissions TEXT NOT NULL,
     permission_version INT NOT NULL DEFAULT 1,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_permissions_role_label ON goauth_user_permissions(role_label);
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS goauth_role_templates (
     permissions TEXT NOT NULL,
     permission_hash VARCHAR(64) NOT NULL,
     version INT NOT NULL DEFAULT 1,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- API keys table
@@ -54,10 +54,10 @@ CREATE TABLE IF NOT EXISTS goauth_api_keys (
     key_hash VARCHAR(64) NOT NULL,
     hint VARCHAR(8),
     scopes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP,
-    last_used_at TIMESTAMP,
-    revoked_at TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMPTZ,
+    last_used_at TIMESTAMPTZ,
+    revoked_at TIMESTAMPTZ
 );
 
 CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON goauth_api_keys(user_id);

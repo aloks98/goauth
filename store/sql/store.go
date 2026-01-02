@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -15,6 +16,28 @@ type Store struct {
 	db      *sql.DB
 	dialect Dialect
 	queries *dialectQueries
+}
+
+// TxFunc is a function that runs within a transaction.
+type TxFunc func(ctx context.Context, tx *sql.Tx) error
+
+// WithTransaction executes a function within a database transaction.
+// If the function returns an error, the transaction is rolled back.
+// If the function succeeds, the transaction is committed.
+func (s *Store) WithTransaction(ctx context.Context, fn TxFunc) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	if err := fn(ctx, tx); err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return fmt.Errorf("tx error: %v, rollback error: %v", err, rbErr)
+		}
+		return err
+	}
+
+	return tx.Commit()
 }
 
 // Config holds SQL store configuration.
@@ -502,6 +525,38 @@ func nullString(s string) sql.NullString {
 		return sql.NullString{}
 	}
 	return sql.NullString{String: s, Valid: true}
+}
+
+// RotateRefreshTokenAtomic atomically revokes an old refresh token and saves a new one.
+// This ensures data consistency during token rotation.
+func (s *Store) RotateRefreshTokenAtomic(ctx context.Context, oldJTI string, newToken *store.RefreshToken) error {
+	return s.WithTransaction(ctx, func(ctx context.Context, tx *sql.Tx) error {
+		// Revoke old token
+		var err error
+		if s.dialect == MySQL {
+			_, err = tx.ExecContext(ctx, s.queries.revokeRefreshToken, newToken.ID, oldJTI)
+		} else {
+			_, err = tx.ExecContext(ctx, s.queries.revokeRefreshToken, oldJTI, newToken.ID)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to revoke old token: %w", err)
+		}
+
+		// Save new token
+		_, err = tx.ExecContext(ctx, s.queries.insertRefreshToken,
+			newToken.ID,
+			newToken.UserID,
+			newToken.FamilyID,
+			newToken.TokenHash,
+			newToken.IssuedAt,
+			newToken.ExpiresAt,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to save new token: %w", err)
+		}
+
+		return nil
+	})
 }
 
 // Ensure Store implements store.Store.

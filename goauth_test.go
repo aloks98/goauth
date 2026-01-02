@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aloks98/goauth/store/memory"
+	"github.com/aloks98/goauth/internal/testutil"
 )
 
 // TestClaims is a custom claims type for testing
@@ -16,8 +16,7 @@ type TestClaims struct {
 }
 
 func TestNew_Success(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -46,8 +45,7 @@ func TestNew_WithoutStore(t *testing.T) {
 }
 
 func TestNew_WithoutSecret(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	_, err := New[*TestClaims](
 		WithStore(store),
@@ -58,8 +56,7 @@ func TestNew_WithoutSecret(t *testing.T) {
 }
 
 func TestNew_WithOptions(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -94,8 +91,7 @@ func TestNew_WithOptions(t *testing.T) {
 }
 
 func TestNew_WithAutoMigrate(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -109,8 +105,7 @@ func TestNew_WithAutoMigrate(t *testing.T) {
 }
 
 func TestAuth_Config(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -131,26 +126,24 @@ func TestAuth_Config(t *testing.T) {
 }
 
 func TestAuth_Store(t *testing.T) {
-	memStore := memory.New()
-	defer memStore.Close()
+	store := testutil.SetupPostgres(t)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
-		WithStore(memStore),
+		WithStore(store),
 	)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
 	defer auth.Close()
 
-	if auth.Store() != memStore {
+	if auth.Store() != store {
 		t.Error("Store() should return the configured store")
 	}
 }
 
 func TestAuth_IsRBACEnabled(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	// Without RBAC
 	auth1, err := New[*TestClaims](
@@ -183,8 +176,7 @@ func TestAuth_IsRBACEnabled(t *testing.T) {
 }
 
 func TestAuth_Ping(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -201,7 +193,7 @@ func TestAuth_Ping(t *testing.T) {
 }
 
 func TestAuth_Close(t *testing.T) {
-	store := memory.New()
+	store := testutil.SetupPostgres(t)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -246,8 +238,7 @@ func TestAuth_ClaimsInterface(t *testing.T) {
 // =============================================================================
 
 func TestAuth_GenerateTokenPair(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -279,8 +270,7 @@ func TestAuth_GenerateTokenPair(t *testing.T) {
 }
 
 func TestAuth_ValidateAccessToken(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -311,8 +301,7 @@ func TestAuth_ValidateAccessToken(t *testing.T) {
 }
 
 func TestAuth_ValidateAccessToken_Invalid(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -331,8 +320,7 @@ func TestAuth_ValidateAccessToken_Invalid(t *testing.T) {
 }
 
 func TestAuth_RefreshTokens(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -369,8 +357,7 @@ func TestAuth_RefreshTokens(t *testing.T) {
 }
 
 func TestAuth_RevokeAccessToken(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -402,8 +389,7 @@ func TestAuth_RevokeAccessToken(t *testing.T) {
 }
 
 func TestAuth_RevokeAllUserTokens(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -439,8 +425,7 @@ func TestAuth_RevokeAllUserTokens(t *testing.T) {
 // =============================================================================
 
 func TestAuth_CreateAPIKey(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -466,8 +451,7 @@ func TestAuth_CreateAPIKey(t *testing.T) {
 }
 
 func TestAuth_ValidateAPIKey(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -498,8 +482,7 @@ func TestAuth_ValidateAPIKey(t *testing.T) {
 }
 
 func TestAuth_ValidateAPIKey_Invalid(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -518,8 +501,7 @@ func TestAuth_ValidateAPIKey_Invalid(t *testing.T) {
 }
 
 func TestAuth_RevokeAPIKey(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -551,8 +533,7 @@ func TestAuth_RevokeAPIKey(t *testing.T) {
 }
 
 func TestAuth_ListAPIKeys(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -589,8 +570,7 @@ func TestAuth_ListAPIKeys(t *testing.T) {
 // =============================================================================
 
 func TestAuth_RBAC_NotEnabled(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	auth, err := New[*TestClaims](
 		WithSecret("this-is-a-32-character-secret!!!"),
@@ -649,8 +629,7 @@ func TestAuth_RBAC_NotEnabled(t *testing.T) {
 // =============================================================================
 
 func TestAuth_RBAC_Enabled(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	rbacConfig := []byte(`
 version: 1
@@ -721,8 +700,7 @@ role_templates:
 }
 
 func TestAuth_RBAC_AddRemovePermissions(t *testing.T) {
-	store := memory.New()
-	defer store.Close()
+	store := testutil.SetupPostgres(t)
 
 	rbacConfig := []byte(`
 version: 1
