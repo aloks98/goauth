@@ -118,8 +118,8 @@ func (s *Service) GenerateTokenPair(ctx context.Context, userID string, customCl
 		return nil, err
 	}
 
-	// Generate refresh token
-	refreshToken, err := s.GenerateRefreshToken(ctx, userID)
+	// Generate refresh token with custom claims for rotation persistence
+	refreshToken, err := s.GenerateRefreshToken(ctx, userID, customClaims)
 	if err != nil {
 		return nil, err
 	}

@@ -282,7 +282,7 @@ func TestRevokeRefreshToken(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate refresh token
-	result, err := svc.GenerateRefreshToken(ctx, "user-123")
+	result, err := svc.GenerateRefreshToken(ctx, "user-123", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -327,7 +327,7 @@ func TestGenerateRefreshToken(t *testing.T) {
 	svc := newTestService(t)
 	ctx := context.Background()
 
-	result, err := svc.GenerateRefreshToken(ctx, "user-123")
+	result, err := svc.GenerateRefreshToken(ctx, "user-123", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -350,7 +350,7 @@ func TestValidateRefreshToken(t *testing.T) {
 	svc := newTestService(t)
 	ctx := context.Background()
 
-	result, err := svc.GenerateRefreshToken(ctx, "user-123")
+	result, err := svc.GenerateRefreshToken(ctx, "user-123", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -422,7 +422,7 @@ func TestRevokeTokenFamily(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate a token to get a family ID
-	result, err := svc.GenerateRefreshToken(ctx, "user-123")
+	result, err := svc.GenerateRefreshToken(ctx, "user-123", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -772,5 +772,116 @@ func TestGetCurrentPermissionVersion_DefaultCacheTTL(t *testing.T) {
 	_, err = svc.getCurrentPermissionVersion(ctx, "default-ttl-user")
 	if err != nil {
 		t.Fatalf("unexpected error on cached call: %v", err)
+	}
+}
+
+func TestRefreshTokens_PreservesCustomClaims(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	customClaims := map[string]any{
+		"tenant_id":   "tenant-123",
+		"tenant_slug": "my-tenant",
+		"role":        "admin",
+		"email":       "admin@example.com",
+	}
+
+	// Generate initial token pair with custom claims
+	pair, err := svc.GenerateTokenPair(ctx, "user-1", customClaims)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Verify original access token has custom claims
+	originalClaims, err := svc.ValidateAccessToken(ctx, pair.AccessToken)
+	if err != nil {
+		t.Fatalf("failed to validate access token: %v", err)
+	}
+	if originalClaims.Custom["tenant_id"] != "tenant-123" {
+		t.Errorf("expected tenant_id tenant-123, got %v", originalClaims.Custom["tenant_id"])
+	}
+	if originalClaims.Custom["tenant_slug"] != "my-tenant" {
+		t.Errorf("expected tenant_slug my-tenant, got %v", originalClaims.Custom["tenant_slug"])
+	}
+	if originalClaims.Custom["role"] != "admin" {
+		t.Errorf("expected role admin, got %v", originalClaims.Custom["role"])
+	}
+	if originalClaims.Custom["email"] != "admin@example.com" {
+		t.Errorf("expected email admin@example.com, got %v", originalClaims.Custom["email"])
+	}
+
+	// Refresh the token
+	refreshedPair, err := svc.RefreshTokens(ctx, pair.RefreshToken)
+	if err != nil {
+		t.Fatalf("unexpected error refreshing tokens: %v", err)
+	}
+
+	// Verify refreshed access token ALSO has custom claims
+	refreshedClaims, err := svc.ValidateAccessToken(ctx, refreshedPair.AccessToken)
+	if err != nil {
+		t.Fatalf("failed to validate refreshed access token: %v", err)
+	}
+	if refreshedClaims.Custom["tenant_id"] != "tenant-123" {
+		t.Errorf("expected tenant_id tenant-123 after refresh, got %v", refreshedClaims.Custom["tenant_id"])
+	}
+	if refreshedClaims.Custom["tenant_slug"] != "my-tenant" {
+		t.Errorf("expected tenant_slug my-tenant after refresh, got %v", refreshedClaims.Custom["tenant_slug"])
+	}
+	if refreshedClaims.Custom["role"] != "admin" {
+		t.Errorf("expected role admin after refresh, got %v", refreshedClaims.Custom["role"])
+	}
+	if refreshedClaims.Custom["email"] != "admin@example.com" {
+		t.Errorf("expected email admin@example.com after refresh, got %v", refreshedClaims.Custom["email"])
+	}
+}
+
+func TestRefreshTokens_PreservesCustomClaimsAcrossMultipleRotations(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	customClaims := map[string]any{"key": "value"}
+
+	pair, err := svc.GenerateTokenPair(ctx, "user-1", customClaims)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Rotate 3 times
+	for i := 0; i < 3; i++ {
+		pair, err = svc.RefreshTokens(ctx, pair.RefreshToken)
+		if err != nil {
+			t.Fatalf("rotation %d: unexpected error: %v", i+1, err)
+		}
+
+		claims, err := svc.ValidateAccessToken(ctx, pair.AccessToken)
+		if err != nil {
+			t.Fatalf("rotation %d: failed to validate: %v", i+1, err)
+		}
+		if claims.Custom["key"] != "value" {
+			t.Errorf("rotation %d: expected custom claim key=value, got %v", i+1, claims.Custom["key"])
+		}
+	}
+}
+
+func TestRefreshTokens_NilCustomClaimsStillWorks(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	pair, err := svc.GenerateTokenPair(ctx, "user-1", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	refreshedPair, err := svc.RefreshTokens(ctx, pair.RefreshToken)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	claims, err := svc.ValidateAccessToken(ctx, refreshedPair.AccessToken)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if claims.Custom != nil {
+		t.Errorf("expected nil custom claims, got %v", claims.Custom)
 	}
 }

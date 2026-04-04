@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS goauth_refresh_tokens (
     expires_at DATETIME NOT NULL,
     revoked_at DATETIME,
     replaced_by VARCHAR(64),
+    custom_claims JSON DEFAULT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_user_id (user_id),
     INDEX idx_family_id (family_id),
@@ -59,3 +60,6 @@ CREATE TABLE IF NOT EXISTS goauth_api_keys (
     INDEX idx_prefix_hash (prefix, key_hash),
     INDEX idx_expires_at (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- migration: AddCustomClaimsToRefreshTokens
+ALTER TABLE goauth_refresh_tokens ADD COLUMN custom_claims JSON DEFAULT NULL;

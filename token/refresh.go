@@ -18,8 +18,8 @@ type RefreshTokenResult struct {
 }
 
 // GenerateRefreshToken creates a new refresh token for a user.
-func (s *Service) GenerateRefreshToken(ctx context.Context, userID string) (*RefreshTokenResult, error) {
-	result, err := s.generateRefreshTokenWithFamily(ctx, userID, "")
+func (s *Service) GenerateRefreshToken(ctx context.Context, userID string, customClaims map[string]any) (*RefreshTokenResult, error) {
+	result, err := s.generateRefreshTokenWithFamily(ctx, userID, "", customClaims)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +30,7 @@ func (s *Service) GenerateRefreshToken(ctx context.Context, userID string) (*Ref
 
 // generateRefreshTokenWithFamily creates a refresh token with a specific family ID.
 // If familyID is empty, a new family is created.
-func (s *Service) generateRefreshTokenWithFamily(ctx context.Context, userID, familyID string) (*RefreshTokenResult, error) {
+func (s *Service) generateRefreshTokenWithFamily(ctx context.Context, userID, familyID string, customClaims map[string]any) (*RefreshTokenResult, error) {
 	// Generate secure random token
 	rawToken, err := crypto.GenerateRandomString(32)
 	if err != nil {
@@ -59,12 +59,13 @@ func (s *Service) generateRefreshTokenWithFamily(ctx context.Context, userID, fa
 
 	// Create the refresh token record
 	refreshToken := &store.RefreshToken{
-		ID:        jti,
-		UserID:    userID,
-		FamilyID:  familyID,
-		TokenHash: tokenHash,
-		IssuedAt:  now,
-		ExpiresAt: expiresAt,
+		ID:           jti,
+		UserID:       userID,
+		FamilyID:     familyID,
+		TokenHash:    tokenHash,
+		IssuedAt:     now,
+		ExpiresAt:    expiresAt,
+		CustomClaims: customClaims,
 	}
 
 	// Store the token
@@ -153,8 +154,8 @@ func (s *Service) RotateRefreshToken(ctx context.Context, rawToken string) (*Pai
 		return nil, ErrRefreshTokenExpired
 	}
 
-	// Generate new refresh token in the same family
-	newRefreshToken, err := s.generateRefreshTokenWithFamily(ctx, storedToken.UserID, storedToken.FamilyID)
+	// Generate new refresh token in the same family, carrying custom claims forward
+	newRefreshToken, err := s.generateRefreshTokenWithFamily(ctx, storedToken.UserID, storedToken.FamilyID, storedToken.CustomClaims)
 	if err != nil {
 		return nil, err
 	}
@@ -176,8 +177,8 @@ func (s *Service) RotateRefreshToken(ctx context.Context, rawToken string) (*Pai
 		}
 	}
 
-	// Generate new access token
-	accessToken, _, expiresAt, err := s.generateAccessToken(storedToken.UserID, permissionVersion, nil)
+	// Generate new access token with the stored custom claims
+	accessToken, _, expiresAt, err := s.generateAccessToken(storedToken.UserID, permissionVersion, storedToken.CustomClaims)
 	if err != nil {
 		return nil, err
 	}

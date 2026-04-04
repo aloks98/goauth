@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS goauth_refresh_tokens (
     expires_at TIMESTAMPTZ NOT NULL,
     revoked_at TIMESTAMPTZ,
     replaced_by VARCHAR(64),
+    custom_claims JSONB DEFAULT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -63,3 +64,6 @@ CREATE TABLE IF NOT EXISTS goauth_api_keys (
 CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON goauth_api_keys(user_id);
 CREATE INDEX IF NOT EXISTS idx_api_keys_prefix_hash ON goauth_api_keys(prefix, key_hash);
 CREATE INDEX IF NOT EXISTS idx_api_keys_expires_at ON goauth_api_keys(expires_at);
+
+-- Migrations for existing installations
+ALTER TABLE goauth_refresh_tokens ADD COLUMN IF NOT EXISTS custom_claims JSONB DEFAULT NULL;

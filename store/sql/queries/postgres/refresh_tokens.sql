@@ -1,9 +1,9 @@
 -- name: InsertRefreshToken
-INSERT INTO goauth_refresh_tokens (id, user_id, family_id, token_hash, issued_at, expires_at)
-VALUES ($1, $2, $3, $4, $5, $6);
+INSERT INTO goauth_refresh_tokens (id, user_id, family_id, token_hash, issued_at, expires_at, custom_claims)
+VALUES ($1, $2, $3, $4, $5, $6, $7);
 
 -- name: SelectRefreshToken
-SELECT id, user_id, family_id, token_hash, issued_at, expires_at, revoked_at, replaced_by
+SELECT id, user_id, family_id, token_hash, issued_at, expires_at, revoked_at, replaced_by, custom_claims
 FROM goauth_refresh_tokens WHERE id = $1;
 
 -- name: RevokeRefreshToken

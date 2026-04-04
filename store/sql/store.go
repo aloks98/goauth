@@ -134,6 +134,12 @@ func (s *Store) Migrate(ctx context.Context) error {
 			continue
 		}
 		if _, err := s.db.ExecContext(ctx, stmt); err != nil {
+			// For MySQL ALTER TABLE ADD COLUMN migrations, ignore
+			// "duplicate column" errors (error 1060) since MySQL
+			// doesn't support IF NOT EXISTS on ADD COLUMN.
+			if s.dialect == MySQL && isMySQLDuplicateColumn(err) {
+				continue
+			}
 			return err
 		}
 	}
@@ -141,8 +147,23 @@ func (s *Store) Migrate(ctx context.Context) error {
 	return nil
 }
 
+// isMySQLDuplicateColumn checks if an error is a MySQL "Duplicate column name" error (1060).
+func isMySQLDuplicateColumn(err error) bool {
+	return strings.Contains(err.Error(), "1060") || strings.Contains(err.Error(), "Duplicate column name")
+}
+
 // SaveRefreshToken persists a refresh token.
 func (s *Store) SaveRefreshToken(ctx context.Context, token *store.RefreshToken) error {
+	var customClaimsJSON *string
+	if len(token.CustomClaims) > 0 {
+		b, err := json.Marshal(token.CustomClaims)
+		if err != nil {
+			return err
+		}
+		str := string(b)
+		customClaimsJSON = &str
+	}
+
 	_, err := s.db.ExecContext(ctx, s.queries.insertRefreshToken,
 		token.ID,
 		token.UserID,
@@ -150,6 +171,7 @@ func (s *Store) SaveRefreshToken(ctx context.Context, token *store.RefreshToken)
 		token.TokenHash,
 		token.IssuedAt,
 		token.ExpiresAt,
+		customClaimsJSON,
 	)
 	return err
 }
@@ -159,6 +181,7 @@ func (s *Store) GetRefreshToken(ctx context.Context, jti string) (*store.Refresh
 	token := &store.RefreshToken{}
 	var revokedAt sql.NullTime
 	var replacedBy sql.NullString
+	var customClaimsJSON sql.NullString
 
 	err := s.db.QueryRowContext(ctx, s.queries.selectRefreshToken, jti).Scan(
 		&token.ID,
@@ -169,6 +192,7 @@ func (s *Store) GetRefreshToken(ctx context.Context, jti string) (*store.Refresh
 		&token.ExpiresAt,
 		&revokedAt,
 		&replacedBy,
+		&customClaimsJSON,
 	)
 
 	if err == sql.ErrNoRows {
@@ -183,6 +207,11 @@ func (s *Store) GetRefreshToken(ctx context.Context, jti string) (*store.Refresh
 	}
 	if replacedBy.Valid {
 		token.ReplacedBy = &replacedBy.String
+	}
+	if customClaimsJSON.Valid {
+		if err := json.Unmarshal([]byte(customClaimsJSON.String), &token.CustomClaims); err != nil {
+			return nil, err
+		}
 	}
 
 	return token, nil
@@ -543,6 +572,16 @@ func (s *Store) RotateRefreshTokenAtomic(ctx context.Context, oldJTI string, new
 		}
 
 		// Save new token
+		var newCustomClaimsJSON *string
+		if len(newToken.CustomClaims) > 0 {
+			b, err := json.Marshal(newToken.CustomClaims)
+			if err != nil {
+				return fmt.Errorf("failed to marshal custom claims: %w", err)
+			}
+			str := string(b)
+			newCustomClaimsJSON = &str
+		}
+
 		_, err = tx.ExecContext(ctx, s.queries.insertRefreshToken,
 			newToken.ID,
 			newToken.UserID,
@@ -550,6 +589,7 @@ func (s *Store) RotateRefreshTokenAtomic(ctx context.Context, oldJTI string, new
 			newToken.TokenHash,
 			newToken.IssuedAt,
 			newToken.ExpiresAt,
+			newCustomClaimsJSON,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to save new token: %w", err)

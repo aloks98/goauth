@@ -32,6 +32,10 @@ type RefreshToken struct {
 	// ReplacedBy is the JTI of the token that replaced this one.
 	// Set during token rotation.
 	ReplacedBy *string `db:"replaced_by" json:"replaced_by,omitempty"`
+
+	// CustomClaims stores user-defined claims that survive token rotation.
+	// These are carried forward when refresh tokens are rotated.
+	CustomClaims map[string]any `db:"custom_claims" json:"custom_claims,omitempty"`
 }
 
 // IsRevoked returns true if the token has been revoked.
