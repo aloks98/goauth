@@ -33,7 +33,6 @@ tokens, _ := auth.GenerateTokenPair(ctx, userID, Claims{
 **Available features:**
 - JWT access tokens with refresh rotation
 - Token blacklisting
-- Password hashing
 - API keys (without scope validation)
 - All middleware (except permission checks)
 
@@ -68,7 +67,6 @@ auth.RequirePermission("monitors:write")
 | JWT Access Tokens | Short-lived tokens for API authentication | No |
 | Refresh Tokens | Long-lived tokens with rotation and theft detection | No |
 | Token Blacklisting | Instant token revocation | No |
-| Password Hashing | Argon2id (default) and Bcrypt support | No |
 | API Keys | Prefixed keys for programmatic access | No |
 | API Key Scopes | Scope validation for API keys | Yes |
 | User Permissions | Per-user permission management | Yes |
@@ -90,7 +88,7 @@ auth.RequirePermission("monitors:write")
 │  │                           Public API                                    │ │
 │  │  goauth.New[T]() / GenerateTokenPair() / ValidateToken()              │ │
 │  │  AssignRole() / SetPermissions() / GetUserPermissions()               │ │
-│  │  GenerateAPIKey() / ValidateAPIKey() / HashPassword()                 │ │
+│  │  CreateAPIKey() / ValidateAPIKey() / RevokeAPIKey()                    │ │
 │  └────────────────────────────────────────────────────────────────────────┘ │
 │                                      │                                       │
 │         ┌────────────────────────────┼────────────────────────────┐         │
@@ -118,15 +116,15 @@ auth.RequirePermission("monitors:write")
 │  └────────────────────────────────────────────────────────────────────────┘ │
 │                                                                              │
 │  ┌─────────────────────────────────┐  ┌─────────────────────────────────┐   │
-│  │         Middleware              │  │        Password Hasher          │   │
-│  │  net/http │ Fiber │ Echo │ Gin │  │     Argon2id │ Bcrypt           │   │
+│  │         Middleware              │  │     Rate Limiter (Optional)     │   │
+│  │  net/http │ Fiber │ Echo │ Gin │  │        Sliding Window           │   │
 │  │          Chi                    │  │                                 │   │
 │  └─────────────────────────────────┘  └─────────────────────────────────┘   │
 │                                                                              │
-│  ┌─────────────────────────────────┐  ┌─────────────────────────────────┐   │
-│  │     Rate Limiter (Optional)     │  │      Background Workers         │   │
-│  │     Sliding Window              │  │      Token Cleanup              │   │
-│  └─────────────────────────────────┘  └─────────────────────────────────┘   │
+│  ┌─────────────────────────────────┐                                        │
+│  │      Background Workers         │                                        │
+│  │      Token Cleanup              │                                        │
+│  └─────────────────────────────────┘                                        │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```

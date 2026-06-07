@@ -107,42 +107,6 @@ func (a *Auth[T]) RevokeAllUserTokens(ctx context.Context, userID string) error
 
 ---
 
-## Password Operations ✅
-
-Password operations work in both modes.
-
-### HashPassword
-
-Hashes a password using the configured hasher (Argon2id by default).
-
-```go
-func (a *Auth[T]) HashPassword(password string) (string, error)
-```
-
-**Example:**
-```go
-hash, err := auth.HashPassword("user-password")
-// Store hash in your user database
-```
-
-### VerifyPassword
-
-Verifies a password against a hash.
-
-```go
-func (a *Auth[T]) VerifyPassword(password, hash string) (bool, error)
-```
-
-**Example:**
-```go
-valid, err := auth.VerifyPassword(inputPassword, user.PasswordHash)
-if !valid {
-    // Invalid password
-}
-```
-
----
-
 ## API Key Operations ✅
 
 API key operations work in both modes.

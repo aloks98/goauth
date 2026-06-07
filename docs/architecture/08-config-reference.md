@@ -159,28 +159,6 @@ Enables syncing role templates to users on startup.
 goauth.WithRoleSyncOnStartup(true)  // Default: true
 ```
 
-### Password Configuration
-
-#### WithPasswordHasher
-
-Sets the password hashing algorithm.
-
-```go
-// Argon2id (default, recommended)
-goauth.WithPasswordHasher(password.NewArgon2(password.Argon2Config{
-    Memory:      64 * 1024,  // 64 MB
-    Iterations:  3,
-    Parallelism: 2,
-    SaltLength:  16,
-    KeyLength:   32,
-}))
-
-// Bcrypt
-goauth.WithPasswordHasher(password.NewBcrypt(password.BcryptConfig{
-    Cost: 12,
-}))
-```
-
 ### API Key Configuration
 
 #### WithAPIKeyPrefix
@@ -381,9 +359,6 @@ func main() {
         goauth.WithPermissionVersionCheck(true),
         goauth.WithPermissionCacheTTL(30 * time.Second),
         goauth.WithRoleSyncOnStartup(true),
-        
-        // Password settings
-        goauth.WithPasswordHasher(password.NewArgon2(password.DefaultArgon2Config)),
         
         // API key settings
         goauth.WithAPIKeyPrefix("sk_live"),

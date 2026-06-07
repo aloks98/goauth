@@ -17,11 +17,6 @@ goauth/
 │   ├── blacklist.go          # Token blacklist management
 │   └── claims.go             # Token claims helpers
 │
-├── password/
-│   ├── hasher.go             # Hasher interface
-│   ├── argon2.go             # Argon2id implementation (default)
-│   └── bcrypt.go             # Bcrypt implementation
-│
 ├── apikey/
 │   ├── manager.go            # API key generation and validation
 │   ├── config.go             # API key configuration
@@ -99,16 +94,6 @@ JWT and refresh token handling.
 | `refresh.go` | Refresh token generation, rotation, family tracking |
 | `blacklist.go` | Access token blacklist operations |
 | `claims.go` | Claims extraction and manipulation |
-
-### Password Package (`password`)
-
-Password hashing implementations.
-
-| File | Purpose |
-|------|---------|
-| `hasher.go` | `Hasher` interface |
-| `argon2.go` | Argon2id implementation with configurable params |
-| `bcrypt.go` | Bcrypt implementation for compatibility |
 
 ### API Key Package (`apikey`)
 

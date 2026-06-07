@@ -11,7 +11,6 @@ A stateful authentication and authorization library for Go applications.
 - **JWT Access Tokens** - Short-lived tokens with custom claims
 - **Refresh Token Rotation** - Secure token refresh with family tracking
 - **Token Blacklisting** - Instant revocation support
-- **Password Hashing** - Argon2id (default) or Bcrypt
 - **API Key Management** - Scoped API keys with expiration
 - **User-Level RBAC** - Role templates with per-user permissions
 - **Config-Driven** - Define roles/permissions in YAML or JSON
@@ -321,16 +320,6 @@ keys, err := auth.ListAPIKeys(ctx, "user-123")
 err = auth.RevokeAPIKey(ctx, keyID)
 ```
 
-## Password Hashing
-
-```go
-// Hash a password (uses Argon2id by default)
-hash, err := auth.HashPassword("user-password")
-
-// Verify password
-valid := auth.VerifyPassword("user-password", hash)
-```
-
 ## Store Backends
 
 **PostgreSQL:**
@@ -369,7 +358,6 @@ store, err := sql.New(&sql.Config{
 | `WithRefreshTokenTTL(duration)` | Refresh token lifetime | 7 days |
 | `WithRBACFromFile(path)` | Load RBAC config from file | - |
 | `WithRBACFromBytes(data, format)` | Load RBAC config from bytes | - |
-| `WithPasswordHasher(hasher)` | Custom password hasher | Argon2id |
 | `WithCleanupInterval(duration)` | Expired token cleanup interval | 1 hour |
 
 ## Examples
